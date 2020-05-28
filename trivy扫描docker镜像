@@ -20,3 +20,6 @@ trivy --severity HIGH,CRITICAL ruby:2.3.0
 用json格式输出并且过滤高危漏洞
 
 trivy  --severity HIGH,CRITICAL -f json -o jdk8.json registry.cn-hongkong.aliyuncs.com/snapex/opera/centos-jdk8
+
+现在的harbor2.0版本可以直接在启动的时候加载trivy
+./install.sh --with-notary --with-trivy --with-clair
