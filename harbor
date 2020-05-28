@@ -1,0 +1,51 @@
+参考  https://github.com/Statemood/documents/tree/master/harbor 
+
+yum install vim zip wget git -y
+
+cd /opt/ && wget https://github.com/goharbor/harbor/releases/download/v2.0.0/harbor-offline-installer-v2.0.0.tgz
+
+tar zxvf harbor-offline-installer-v2.0.0.tgz && cd harbor/ && cp harbor.yml.tmpl harbor.yml
+
+修改：
+
+hostname = harbor.supers.io
+certificate: /data/harbor/ssl/harbor.supers.io.pem
+private_key: /data/harbor/ssl/harbor.supers.io.key
+
+创建并进入证书目录
+mkdir -p /data/harbor/ssl && cd /data/harbor/ssl
+
+生成 CA Key
+openssl genrsa -out ca.key 3072
+
+生成 CA Pem
+openssl req -new -nodes -x509 -days 1095 -key ca.key -out ca.pem -subj "/CN=CN/ST=Shanghai/L=Shanghai/OU=IT/O=YK"
+
+域名证书--生成 Key
+openssl genrsa -out harbor.supers.io.key 3072
+
+生成证书请求
+openssl req -new -key harbor.supers.io.key -out harbor.supers.io.csr
+
+签发证书
+openssl x509 -req -in harbor.supers.io.csr -CA ca.pem -CAkey ca.key -CAcreateserial -out harbor.supers.io.pem -days 1095
+
+查看证书内容
+openssl x509 -noout -text -in harbor.supers.io.pem
+
+信任 CA 证书
+cp ca.pem /etc/pki/ca-trust/source/anchors
+
+update-ca-trust enable
+
+重启docker服务
+systemctl restart docker.service
+
+启动Harbor
+./install.sh --with-notary --with-trivy --with-clair
+
+echo "$IP   harbor.supers.io" >>/etc/hosts
+
+测试登录 docker login -u admin -p Harbor12345 harbor.supers.io.pem
+
+harbor默认密码 Harbor12345
