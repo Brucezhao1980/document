@@ -9,7 +9,7 @@ tar -zcvf jre1.8.0_251.tar.gz jre1.8.0_251/
 
 Dockerfile内容：
 
-FROM harbor.supers.io/test/alpine
+FROM 仓库地址/test/alpine
 
 ENV LANG=en_US.UTF-8
 
@@ -66,4 +66,4 @@ ENV PATH=$JAVA_HOME/bin:$PATH
 ####################################################################################################################
 
 构建镜像
-docker build -t harbor.supers.io/test/alpine-jre:1.0.0 .
+docker build -t 仓库地址/test/alpine-jre:1.0.0 .
