@@ -1,0 +1,10 @@
+from random import choice
+
+lunch = ['便利蜂', '饿了么', '陕面王', '陕面居', '黄焖鸡', '到底米线', '听庆林的',
+         '听李刚的', '拉面', '小笼包', '7-11']
+dinner = ['种春风', '饿了么', '炒饼', '陕面王', '陕面居', '黄焖鸡', '富力5层',
+        '豌杂面', '到底米线', '听庆林的', '听李刚的', '拉面', '庆丰包子', '小笼包']
+a = str(input('please:'))
+if a == lunch:
+    print(choice(lunch))
+else:print(choice(dinner))
