@@ -1,4 +1,5 @@
 配置文件 etcd-ca.cnf
+
 [ req ]
 req_extensions     = v3_req
 distinguished_name = req_distinguished_name
@@ -8,7 +9,9 @@ distinguished_name = req_distinguished_name
 [ v3_req ]
 keyUsage           = critical, keyCertSign, digitalSignature, keyEncipherment
 basicConstraints   = critical, CA:true
+
 生成 key
+
 openssl genrsa -out etcd-ca.key 4096
 
 签发 ca
@@ -20,6 +23,7 @@ openssl req -x509 -new -nodes -key etcd-ca.key -days 1825 -out etcd-ca.pem \
 签发 etcd server 证书
 
 etcd-server.cnf
+
 [ req ]
 req_extensions      = v3_req
 distinguished_name  = req_distinguished_name
@@ -39,17 +43,22 @@ IP.1 为客户端IP, 可以为多个, 如 IP.2 = xxx
 openssl genrsa -out etcd-server.key 4096
 
 生成证书签名请求
+
 openssl req -new -key etcd-server.key -out etcd-server.csr \
         -subj "/C=CN/ST=Beijing/L=Beijing/O=k8s/CN=etcd-server" \
         -config etcd-server.cnf
 
 签发证书
+
 openssl x509 -req -in etcd-server.csr -CA etcd-ca.pem \
         -CAkey etcd-ca.key -CAcreateserial \
         -out etcd-server.pem -days 1825 \
         -extfile etcd-server.cnf -extensions v3_req
 
-配置文件 etcd-peer.cnf
+配置文件 
+
+etcd-peer.cnf
+
 [ req ]
 req_extensions     = v3_req
 distinguished_name = req_distinguished_name
@@ -67,6 +76,7 @@ IP.2 = 172.31.114.8
 IP.3 = 172.31.114.9
 
 生成key
+
 openssl genrsa -out etcd-peer.key 4096
 
 openssl req -new -key etcd-peer.key -out etcd-peer.csr \
@@ -74,11 +84,14 @@ openssl req -new -key etcd-peer.key -out etcd-peer.csr \
         -config etcd-peer.cnf
 
 签发证书
+
 openssl x509 -req -in etcd-peer.csr \
         -CA etcd-ca.pem -CAkey etcd-ca.key -CAcreateserial \
         -out etcd-peer.pem -days 1825 \
         -extfile etcd-peer.cnf -extensions v3_req
-配置文件 etcd-client.cnf
+配置文件
+etcd-client.cnf
+
 [ req ]
 req_extensions     = v3_req
 distinguished_name = req_distinguished_name
@@ -90,6 +103,7 @@ extendedKeyUsage   = clientAuth
 keyUsage           = critical, digitalSignature, keyEncipherment
 
 生成key
+
 openssl genrsa -out etcd-client.key 4096
 
 openssl req -new -key etcd-client.key -out etcd-client.csr \
@@ -141,7 +155,10 @@ ETCDCTL_API=3 etcdctl --endpoints=https://172.31.114.7:2379 \
                       --cert=/opt/ssl/etcd-client.pem \
                       --key=/opt/ssl/etcd-client.key \
                       member add etcd2 --peer-urls=https://172.31.114.8:2380
+                      
+                      
 etcd2
+
 [member]
 ETCD_NAME=etcd2
 ETCD_DATA_DIR="/var/lib/etcd/etcd"
@@ -165,6 +182,7 @@ ETCD_PEER_TRUSTED_CA_FILE="/opt/ssl/etcd-ca.pem"
 ETCD_PEER_AUTO_TLS="true"
 
 etcd3
+
 [member]
 ETCD_NAME=etcd3
 ETCD_DATA_DIR="/var/lib/etcd/etcd"
@@ -189,7 +207,8 @@ ETCD_PEER_AUTO_TLS="true"
 
 
 
-修改文件 /usr/lib/systemd/system/etcd.service
+修改文件
+
 /usr/lib/systemd/system/etcd.service
 
 [Unit]
@@ -236,28 +255,19 @@ systemctl start etcd  #启动etcd
 systemctl enable etcd
 
 查看状态
+
 ETCDCTL_API=3 etcdctl --endpoints=https://172.31.114.7:2379 --cacert=/opt/ssl/etcd-ca.pem --cert=/opt/ssl/etcd-client.pem --key=/opt/ssl/etcd-client.key   member list
 
-###########################################################################################################################
-<!-- ETCDCTL_API=3 etcdctl --cacert=/opt/ssl/etcd-ca.pem --cert=/opt/ssl/etcd-client.pem --key=/opt/ssl/etcd-client.key --endpoints="https://192.168.190.128:2379,https://192.168.190.129:2379,https://192.168.190.130:2379" put /coreos.com/network/config '{"Network":"172.10.0.0/16", "SubnetMin": "172.10.1.0", "SubnetMax": "172.10.254.0", "Backend":{"Type":"vxlan"}}'
+##############################################################
+                       flannel配置
+##############################################################
 
-ETCDCTL_API=3 etcdctl --cacert=/opt/ssl/etcd-ca.pem --cert=/opt/ssl/etcd-client.pem --key=/opt/ssl/etcd-client.key --endpoints="https://192.168.190.128:2379,https://192.168.190.129:2379,https://192.168.190.130:2379" get /coreos.com/network/config
-
-ETCDCTL_API=3 etcdctl --cacert=/opt/ssl/etcd-ca.pem --cert=/opt/ssl/etcd-client.pem --key=/opt/ssl/etcd-client.key --endpoints="https://192.168.190.128:2379,https://192.168.190.129:2379,https://192.168.190.130:2379" get /run/flannel/networks
-
-etcdctl --ca-file=/opt/ssl/etcd-ca.pem --cert-file=/opt/ssl/etcd-client.pem --key-file=/opt/ssl/etcd-client.key --endpoints="https://192.168.190.128:2379,https://192.168.190.129:2379,https://192.168.190.130:2379"  mkdir /coreos.com/network/
-
-etcdctl --ca-file=/opt/ssl/etcd-ca.pem --cert-file=/opt/ssl/etcd-client.pem --key-file=/opt/ssl/etcd-client.key --endpoints="https://192.168.190.128:2379,https://192.168.190.129:2379,https://192.168.190.130:2379" mk /coreos.com/network/config '{"Network":"172.10.0.0/16", "SubnetLen": 24, "SubnetMin": "172.10.1.0", "SubnetMax": "172.10.254.0", "Backend": {"Type": "vxlan"}}'
-
-etcdctl --ca-file=/opt/ssl/etcd-ca.pem --cert-file=/opt/ssl/etcd-client.pem --key-file=/opt/ssl/etcd-client.key --endpoints="https://192.168.190.128:2379,https://192.168.190.129:2379,https://192.168.190.130:2379" set /coreos.com/network/config '{"Network":"172.10.0.0/16", "SubnetMin": "172.10.1.0", "SubnetMax": "172.10.254.0", "Backend":{"Type":"vxlan"}}' -->
-#############################################################################################################################################
-                            flannel配置
-#############################################################################################################################################
 yum install flannel -y # 安装flannel网络
 
 echo "net.ipv4.ip_forward = 1" >>/etc/sysctl.conf && sysctl -p       # 开启路由转发
 
 先建个软连：
+
 ln -s /usr/libexec/flannel/mk-docker-opts.sh /usr/bin/mk-docker-opts.sh
 
 etcdctl  --ca-file=/opt/ssl/etcd-ca.pem --cert-file=/opt/ssl/etcd-client.pem --key-file=/opt/ssl/etcd-client.key --endpoints="https://172.31.114.7:2379,https://172.31.114.8:2379,https://172.31.114.9:2379" set /coreos.com/network/config '{"Network":"172.10.0.0/16", "SubnetMin": "172.10.1.0", "SubnetMax": "172.10.254.0", "Backend":{"Type":"vxlan"}}'
@@ -302,11 +312,15 @@ FLANNEL_ETCD_PREFIX="/coreos.com/network"
 
 # Any additional options that you want to pass
 FLANNEL_OPTIONS="-iface=eth0"
-#################################################################################################################
+
+######################################################################################
      在命令行排错，/usr/bin/flanneld -etcd-cafile=/opt/ssl/etcd-ca.pem -etcd-certfile=/opt/ssl/etcd-client.pem -etcd-keyfile=/opt/ssl/etcd-client.key -etcd-endpoints="https://192.168.190.128:2379,https://192.168.190.129:2379,https://192.168.190.130:2379" -etcd-prefix="/coreos.com/network"
-#################################################################################################################
+######################################################################################
+
 配置Docker
+
 修改docker启动参数
+
   1 root@docker01:~# vim /lib/systemd/system/docker.service
   2 #……
   3 EnvironmentFile=/run/flannel/docker		#添加flannel转换后的docker能识别的配置文件
