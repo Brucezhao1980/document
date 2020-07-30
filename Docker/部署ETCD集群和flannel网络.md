@@ -259,7 +259,9 @@ systemctl enable etcd
 ETCDCTL_API=3 etcdctl --endpoints=https://172.31.114.7:2379 --cacert=/opt/ssl/etcd-ca.pem --cert=/opt/ssl/etcd-client.pem --key=/opt/ssl/etcd-client.key   member list
 
 ##############################################################
-                       flannel配置
+
+                     flannel配置
+                     
 ##############################################################
 
 yum install flannel -y # 安装flannel网络
