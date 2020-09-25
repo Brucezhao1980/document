@@ -21,7 +21,7 @@ def one_contaner():
     os.system(pull)
     os.system(contaner)
     os.system("docker-compose stop %s" %(contaner_name))
-    os.system("docker-compose rm %s" %(contaner_name))
+    os.system("docker-compose rm -f %s" %(contaner_name))
     os.system("docker-compose up -d %s" %(contaner_name))
 if contaner_name == "all":
     all_contaner()
