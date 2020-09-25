@@ -1,0 +1,29 @@
+import os
+import sys
+
+contaner_name = input("Which of the contaner?")
+
+print('renew the ' + contaner_name)
+
+registry_url = 'docker login -u igament -p ******** registry.cn-hongkong.aliyuncs.com'
+cmd_down = 'cd /data/soft &&  docker-compose --compatibility -f docker-compose.yml down'
+cmd_up = 'cd /data/soft && docker-compose --compatibility -f docker-compose.yml up -d'
+pull = 'cd /data/soft && docker-compose pull'
+contaner = 'cd /data/soft'
+def all_contaner():
+    os.system(registry_url)
+    os.system(pull)
+    os.system(cmd_down)
+    os.system(cmd_up)
+
+def one_contaner():
+    os.system(registry_url)
+    os.system(pull)
+    os.system(contaner)
+    os.system("docker-compose stop %s" %(contaner_name))
+    os.system("docker-compose rm %s" %(contaner_name))
+    os.system("docker-compose up -d %s" %(contaner_name))
+if contaner_name == "all":
+    all_contaner()
+else:
+    one_contaner()
