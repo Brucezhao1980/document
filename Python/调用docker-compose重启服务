@@ -1,28 +1,39 @@
 import os
 import sys
 
-container_name = input("Which of the contaner?")
-
-print('renew the ' + container_name)
-
-registry_url = 'docker login -u igament -p ******** registry.cn-hongkong.aliyuncs.com'
+registry_url = 'docker login -u igament -p ***** registry.cn-hongkong.aliyuncs.com'
 cmd_down = 'cd /data/soft &&  docker-compose --compatibility -f docker-compose.yml down'
 cmd_up = 'cd /data/soft && docker-compose --compatibility -f docker-compose.yml up -d'
 pull = 'cd /data/soft && docker-compose pull'
-def all_container():
-    os.system(registry_url)
-    os.system(pull)
-    os.system(cmd_down)
-    os.system(cmd_up)
+rmi_clear = "docker images|grep none| awk '{print $3}' |xargs docker rmi -f"
 
-def one_container():
-    os.system(registry_url)
-    os.system(pull)
-    os.system(contaner)
-    os.system("cd /data/soft && docker-compose  stop %s" %(container_name))
-    os.system("cd /data/soft && docker-compose rm -f %s" %(container_name))
-    os.system("cd /data/soft && docker-compose up -d %s" %(container_name))
-if container_name == "all":
-    all_container()
-else:
-    one_container()
+def con():
+    container_name = input("Which of the container?")
+    print('renew the ' + container_name)
+
+    def all_container():
+        os.system(registry_url)
+        os.system(pull)
+        os.system(cmd_down)
+        os.system(cmd_up)
+
+    def one_container():
+        os.system(registry_url)
+        os.system(pull)
+        os.system("cd /data/soft && docker-compose  stop %s" % (container_name))
+        os.system("cd /data/soft && docker-compose rm -f %s" % (container_name))
+        os.system("cd /data/soft && docker-compose up -d %s" % (container_name))
+
+    if container_name == "all":
+        all_container()
+    else:
+        one_container()
+
+def clear():
+    os.system(rmi_clear)
+
+if len(sys.argv) == 1 :
+    con()
+elif sys.argv[1] == "clear":
+    clear()
+    exit()
