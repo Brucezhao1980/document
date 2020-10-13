@@ -1,10 +1,63 @@
-from random import choice
+from random import random
+from math import sin, cos, pi
+# from tkinter.messagebox import showinfo
+import matplotlib.pyplot as plt
+from matplotlib.widgets import Button
 
-lunch = ['便利蜂', '饿了么', '陕面王', '陕面居', '黄焖鸡', '到底米线', '听庆林的',
-         '听李刚的', '拉面', '小笼包', '7-11']
-dinner = ['种春风', '饿了么', '炒饼', '陕面王', '陕面居', '黄焖鸡', '富力5层',
-        '豌杂面', '到底米线', '听庆林的', '听李刚的', '拉面', '庆丰包子', '小笼包']
-a = str(input('please:'))
-if a == lunch:
-    print(choice(lunch))
-else:print(choice(dinner))
+
+# 设置图形上的中文字体，支持在图形上显示中文
+plt.rcParams['font.sans-serif'] = ['SimHei']
+
+# 划分转盘上的区域
+data = {'种春风':0.05, '富力地下一层':0.05, '便利蜂':0.05, '饿了么':0.05, '炒饼':0.05, '贺秦生':0.05, '陕面居':0.05,
+        '黄焖鸡':0.1, '豌杂面':0.05, '到底米线':0.2, '富力5层':0.1, '庆丰包子':0.05, '小笼包':0.05, '听庆林的':0.05, '听李刚的':0.05}
+
+fig = plt.figure()
+# 创建轴域，用来绘制饼状图和折线图
+ax1 = plt.axes([0.1, 0.15, 0.8, 0.8])
+# 绘制饼状图，模拟转盘
+ax1.pie(data.values(), labels=data.keys(), radius=1)
+ax1.plot([0, 1], [0, 0], lw=2, color='green')
+
+def motion(event):
+    # 禁用按钮，避免重复响应鼠标单击
+    buttonStart.set_active(False)
+    # 用来控制指针位置的变量
+    position = 0
+    step = random()*2
+    ax1.lines.clear()
+    ax1.plot([0, cos(position)], [0, sin(position)], lw=2, color='green')
+    # 强制更新图形
+    plt.draw_all(True)
+    # 模拟转盘上的指针转动
+    for i in range(150):
+        # 不断减小step的值，模拟指针越转越慢。
+        if i%15 == 0:
+            step = max(0, step-0.1)
+        # 如果已经转的很慢，提前结束循环
+        if step < 1e-2:
+            break
+        position = position + step
+        # 暂停，参数越小转的越快。
+        plt.pause(0.03)
+        # 删除图形上的所有直线
+        ax1.lines.clear()
+        # 重新绘制一条直线，模拟指针转动。
+        # [0, cos(position)]表示直线起点和终点的横坐标
+        # [0, sin(position)]表示直线起点和终点的纵坐标
+        # lw=3表示指针的宽度为3个像素
+        ax1.plot([0, cos(position)], [0, sin(position)], lw=1, color='green')
+        # 强制更新图形
+        plt.draw_all(True)
+    # 启用按钮
+    buttonStart.set_active(True)
+    position = position % (2*pi)
+    ratio = position / (2*pi)
+# 创建子图，防止按钮
+ax2 = plt.axes([0.45, 0.1, 0.1, 0.05])
+buttonStart = Button(ax2, 'Start', color='red', hovercolor='red')
+# 设置单机按钮之后执行的函数
+buttonStart.on_clicked(motion)
+
+# 显示图形
+plt.show()
