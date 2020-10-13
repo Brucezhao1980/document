@@ -7,6 +7,8 @@ cmd_up = 'cd /data/soft && docker-compose --compatibility -f docker-compose.yml 
 pull = 'cd /data/soft && docker-compose pull'
 rmi_clear = "docker images|grep none| awk '{print $3}' |xargs docker rmi -f"
 
+### 执行脚本加clear是清理docker images的none镜像。 input输入all是重新拉取所有镜像并重启服务。单个服务就写单独的服务名。 ###
+
 def con():
     container_name = input("Which of the container?")
     print('renew the ' + container_name)
