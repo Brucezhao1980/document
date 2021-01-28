@@ -1,0 +1,4 @@
+找到这行 ES_JAVA_OPTS="$(parse_jvm_options "$ES_JVM_OPTIONS") $ES_JAVA_OPTS"
+修改成   ES_JAVA_OPTS="-Xms8g -Xmx8g"
+
+最好是机器内存大小的一半，但是不要超过32个G。

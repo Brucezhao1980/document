@@ -1,0 +1,17 @@
+PUT _all/_settings
+{
+  "index": {
+    "number_of_replicas": 0
+  }
+}
+
+##################上面是在kibana的devtools里执行######################
+
+
+curl -H "Content-Type: application/json" -XPUT -u elastic 'http://127.0.0.1:29200/_all/_settings?preserve_existing=true' -d '{
+"index.number_of_replicas": "0"
+}'
+
+QcIAxyjrJP64cCSOcaL3
+
+
