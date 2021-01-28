@@ -1,0 +1,39 @@
+input {
+        beats {
+                port => "25044"
+              }
+}
+filter {
+        grok {
+                match => ["message", "%{TIMESTAMP_ISO8601:logdate}"]
+        }
+        date {
+                match => ["logdate", "yyyy-MM-dd HH:mm:ss,SSS"]
+                target => "@timestamp"
+        }
+        mutate {
+                remove_field => ["logdate"]
+        }
+
+        if [fields][project] == "nginx" {
+                grok {
+                        match => { "message" => "(?:%{IPV4:x_real_ip}|-) (?:%{IPV4:x_forward_for}|-) %{IPV4:remote_ip} %{NUMBER:remote_port} (?:%{USER:ident}|-) %{NOTSPACE:auth} \[%{DATA:timestamp}\] \"%{DATA:http_user_agent}\" (?:\"(?:%{URI:http_referrer}|-)\"|%{QS:http_referrer}) \"%{NOTSPACE:ssl_protocol}\" \"%{NOTSPACE:ssl_chiper}\" \"%{BASE16NUM:request_id}\" \"%{WORD:http_method}\" \"%{WORD:http_schema}\" \"%{HOSTNAME:hostname}\" \"(?:%{WORD:request_verb} %{NOTSPACE:request} (?:HTTP/%{NUMBER:http_version})?)\" %{WORD:is_https_on} %{NUMBER:limit_rate} \"%{NOTSPACE:request_filename}\" \"%{NOTSPACE:request_uri}\" \"%{DATA:cookie}\" %{NUMBER:request_lenth} \"%{WORD:request_completion}\" %{NUMBER:request_time} \"%{DATA:server_protocol}\" %{NUMBER:reponse_status} \[%{DATA:reps_bgn_time}\] (?:%{NUMBER:content_length}|-) \"%{DATA:content_type}\" %{NUMBER:body_bytes_sent} \"%{NOTSPACE:document_root}\" \"%{NOTSPACE:document_uri}\" (?:%{IPV4:proxy_add_x_forward_for}|-) %{NOTSPACE:proxy_host} %{NUMBER:proxy_port} \"%{NOTSPACE:realpath_root}\" \"%{NOTSPACE:uri}\" \"%{NOTSPACE:query_string}\" %{URIHOST:upstream_addr} (?:%{DATA:upstream_cache_status}|-) %{NUMBER:upstream_connect_time} %{NUMBER:upstream_header_time} %{NUMBER:upstream_response_length} %{NUMBER:upstream_response_time} %{NUMBER:upstream_status}" }
+                    }
+            geoip {
+                    source => "remote_ip"
+                      database =>  "/opt/elk-6.5/logstash-6.5.4/vendor/bundle/jruby/2.3.0/gems/logstash-filter-geoip-5.0.3-java/vendor/GeoLite2-City.mmdb"
+            }
+
+}
+}
+
+
+
+output {
+        elasticsearch {
+                        hosts => ["10.1.30.4:29200", "10.1.30.7:29200", "10.1.30.8:29200", "10.1.30.9:29200"]
+                        index => ["%{[fields][project]}-%{+YYYY.MM.dd}"] 
+                        user => "elastic"
+                        password => "QcIAxyjrJP64cCSOcaL3"
+                      }
+}

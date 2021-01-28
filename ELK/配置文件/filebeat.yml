@@ -1,0 +1,91 @@
+#=========================== Filebeat prospectors =============================
+#filebeat.prospectors:
+
+filebeat.inputs:
+- type: log 
+  paths:
+    - /usr/local/nginx/logs/access.log
+  fields:
+    logtopic: boss
+    project: logstash
+    app_name: nginx
+    env: test
+    node: 192.168.1.21
+    multiline.pattern: '^\['
+    multiline.negate: false
+    multiline.match: after
+  scan_frequency: 10s
+- type: log
+  paths:
+    - /usr/local/nginx/logs/cnepay.cc/*.log
+  fields:
+    logtopic: boss
+    project: logstash
+    app_name: nginx-other
+    env: test
+    node: 192.168.1.21
+    multiline.pattern: '^\['
+    multiline.negate: false
+    multiline.match: after
+  scan_frequency: 10s
+- type: log
+  paths:
+    - /usr/local/nginx/logs/cnepay.cc/mposp2way.trunk.cnepay.cc.log
+  fields:
+    logtopic: boss
+    project: mposp2way
+    app_name: trunk
+    env: test
+    node: 192.168.1.21
+    multiline.pattern: '^\['
+    multiline.negate: false
+    multiline.match: after
+  scan_frequency: 10s
+
+
+- type: log
+  paths:
+    - "/var/log/messages"
+  fields:
+    logtopic: boss
+    project: system
+    app_name: system
+    env: test
+    node: 192.168.1.21
+  scan_frequency: 10s
+
+
+
+filebeat.config.modules:
+    #Glob pattern for configuration loading
+    path: ${path.config}/modules.d/*.yml
+#
+############################
+#  output:
+#    logstash:
+#      hosts: ["10.100.1.201:5044"]
+#
+# #----------------------------- Logstash output --------------------------------
+# # #output.logstash:
+# # # The Logstash hosts
+# # # hosts: ["localhost:5044"]
+
+#output.logstash:
+#   hosts: ["10.100.1.203:5044", "10.100.1.201:5044"]
+#   loadbalance: true
+#   index: nginx
+#setup.kibana:
+#  host: "<10.100.1.201:5601>"
+#   #
+#   # #################################################################################
+
+output.kafka:
+  enabled: true
+  hosts: ["10.100.1.201:9092","10.100.1.202:9092","10.100.1.203:9092"]
+  topic: '%{[fields.logtopic]}'
+  partition.hash:
+    reachable_only: true
+  compression: gzip
+  max_message_bytes: 1000000
+  required_acks: 1
+logging.to_files: true
