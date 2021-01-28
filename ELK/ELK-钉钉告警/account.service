@@ -1,0 +1,15 @@
+[Unit]
+Description=elastalert
+After=elastalert.service
+[Service]
+Type=simple
+User=root
+Group=root
+Restart=on-failure
+PIDFile=/usr/local/elastalert.pid
+WorkingDirectory=/etc/elastalert
+ExecStart=/usr/bin/python -m elastalert.elastalert --verbose --config /etc/elastalert/config.yaml --rule /etc/elastalert/rules/account.yaml
+ExecStop=/bin/kill -s QUIT $MAINPID
+ExecReload=/bin/kill -s HUP $MAINPID
+[Install]
+WantedBy=multi-user.target
