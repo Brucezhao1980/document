@@ -1,0 +1,53 @@
+input {
+        beats {
+                port => "5044"
+        }
+}
+filter {
+        grok {
+                match => ["message", "%{TIMESTAMP_ISO8601:logdate}"]
+        }
+        date {
+                match => ["logdate", "yyyy-MM-dd HH:mm:ss,SSS"]
+                target => "@timestamp"
+        }
+if [fields] == "*-server" {
+match => ["message", "^(\tat)"]
+add_tag => ["stacktrace"]
+grok {
+match => [ "message", 
+        "(?<timestamp>%{YEAR}-%{MONTHNUM}-%{MONTHDAY} %{TIME})  %{LOGLEVEL:level} %{NUMBER:pid} --- \[(?<thread>[A-Za-z0-9-]+)\] [A-Za-z0-9.]*\.(?<class>[A-Za-z0-9#_]+)\s*:\s+(?<logmessage>.*)",
+        "message",
+        "(?<timestamp>%{YEAR}-%{MONTHNUM}-%{MONTHDAY} %{TIME})  %{LOGLEVEL:level} %{NUMBER:pid} --- .+? :\s+(?<logmessage>.*)"
+        ]
+}
+}
+
+if [fields] == "gateway" {
+match => ["message", "^(\tat)"]
+add_tag => ["stacktrace"]
+grok {
+match => [ "message", 
+        "(?<timestamp>%{YEAR}-%{MONTHNUM}-%{MONTHDAY} %{TIME})  %{LOGLEVEL:level} %{NUMBER:pid} --- \[(?<thread>[A-Za-z0-9-]+)\] [A-Za-z0-9.]*\.(?<class>[A-Za-z0-9#_]+)\s*:\s+(?<logmessage>.*)",
+        "message",
+        "(?<timestamp>%{YEAR}-%{MONTHNUM}-%{MONTHDAY} %{TIME})  %{LOGLEVEL:level} %{NUMBER:pid} --- .+? :\s+(?<logmessage>.*)"
+        ]
+}
+}
+if [fields] == "nginx" {
+grok {
+match => { "message" => "%{IPV4:clientip} (?:%{USER:ident}|-) (?:%{USER:ident}|-) \[%{HTTPDATE:timestamp}\] \"%{WORD:verb} %{URIPATHPARAM:request} HTTP\/%{NUMBER:h
+ttpversion}\" %{NUMBER:response} (?:%{NUMBER:bytes}|-)" }
+}
+        geoip {
+                source => "clientip"
+                database =>  "/opt/logstash/vendor/bundle/jruby/2.5.0/gems/logstash-filter-geoip-6.0.3-java/vendor/GeoLite2-City.mmdb"
+        }
+}
+}
+output {
+        elasticsearch {
+                        hosts => ["10.0.0.91:9200"]
+                        index => ["%{[fields][project]}-%{+YYYY.MM.dd}"]
+                }
+}

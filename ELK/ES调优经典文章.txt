@@ -1,0 +1,553 @@
+ElasticSearch 5.X 最佳实践
+96  大数据之心 
+2018.01.10 17:49 字数 5715 阅读 654评论 1喜欢 14
+Author: 袁野
+Date: 2018.01.05
+Version: 1.0
+
+注意事项：
+
+本文档所述为通用情况，不可作为特定业务参照；
+本文档所述适用于 ELK 栈中的 ElasticSearch 优化；
+本文档所述基于 elastic 公司的 5.2.1 版本；
+本文档只描述最佳实践，不包含所需变更步骤；
+本文档针对 CentOS 7.2，其他 Unix 发行版不在讨论范围内；
+硬件选择
+目前公司的物理机机型在CPU和内存方面都满足需求，建议使用SSD机型。原因在于，可以快速把 Lucene 的索引文件加载入内存（这在宕机恢复的情况下尤为明显），减少 IO 负载和 IO wait以便CPU不总是在等待IO中断。建议使用多裸盘而非raid，因为 ElasticSearch 本身就支持多目录，raid 要么牺牲空间要么牺牲可用性。
+
+系统配置
+ElasticSearch 理论上必须单独部署，并且会独占几乎所有系统资源，因此需要对系统进行配置，以保证运行 ElasticSearch 的用户可以使用足够多的资源。生产集群需要调整的配置如下：
+
+设置 JVM 堆大小；
+关闭 swap；
+增加文件描述符；
+保证足够的虚存；
+保证足够的线程；
+暂时不建议使用G1GC；
+设置 JVM 堆大小
+ElasticSearch 需要有足够的 JVM 堆支撑索引数据的加载，对于公司的机型来说，因为都是大于 128GB 的，所以推荐的配置是 32GB（如果 JVM 以不等的初始和最大堆大小启动，则在系统使用过程中可能会因为 JVM 堆的大小调整而容易中断。 为了避免这些调整大小的暂停，最好使用初始堆大小等于最大堆大小的 JVM 来启动），预留足够的 IO Cache 给 Lucene（官方建议超过一半的内存需要预留）。
+
+设置方法（需要重启进程）：
+
+# Step1. 修改 ${PATH_TO_ElasticSearch_HOME}/config/jvm.options 中的 Xms 和 Xmx
+-Xms32g
+-Xmx32g
+# Step2. 重启 elasticsearch
+sudo sytemctl restart elasticsearch
+关闭 swap & 禁用交换
+必须要关闭 swap，因为在物理内存不足时，如果发生 FGC，在回收虚拟内存的时候会造成长时间的 stop-the-world，最严重的后果是造成集群雪崩。公司的默认模板是关闭的，但是要巡检一遍，避免有些机器存在问题。
+
+设置方法：
+
+# Step1. root 用户临时关闭
+sudo swapoff -a
+sudo sysctl vm.swappiness=0
+# Step2. 修改 /etc/fstab，注释掉 swap 这行
+# Step3. 修改 /etc/sysctl.conf，添加：
+vm.swappiness = 0
+# Step4. 确认是否生效
+sudo sysctl vm.swappiness
+也可以通过修改 yml 配置文件的方式从 ElasticSearch 层面禁止物理内存和交换区之间交换内存：
+
+Linux 把它的物理 RAM 分成多个内存块，称之为分页。内存交换（swapping）是这样一个过程，它把内存分页复制到预先设定的叫做交换区的硬盘空间上，以此释放内存分页。物理内存和交换区加起来的大小就是虚拟内存的可用额度。
+
+内存交换有个缺点，跟内存比起来硬盘非常慢。内存的读写速度以纳秒来计算，而硬盘是以毫秒来计算，所以访问硬盘比访问内存要慢几万倍。交换次数越多，进程就越慢，所以应该不惜一切代价避免内存交换的发生。
+
+ElasticSearch 的 memory_lock 属性允许 Elasticsearch 节点不交换内存。（注意只有Linux/Unix系统可设置。）这个属性可以在yml文件中设置。
+
+# Step1. 修改 ${PATH_TO_ES_HOME}/config/elasticsearch.yml，添加：
+bootstrap.memory_lock: true
+增加文件描述符
+单个用户可用的最大进程数量(软限制)&单个用户可用的最大进程数量(硬限制)，超过软限制会有警告，但是无法超过硬限制。 ElasticSearch 会使用大量的文件句柄，如果超过限制可能会造成宕机或者数据缺失。
+
+文件描述符是用于跟踪打开“文件”的 Unix 结构体。在Unix中，一切都皆文件。 例如，“文件”可以是物理文件，虚拟文件（例如/proc/loadavg）或网络套接字。 ElasticSearch 需要大量的文件描述符（例如，每个 shard 由多个 segment 和其他文件组成，以及到其他节点的 socket 连接等）。
+
+设置方法（假设是 admin 用户启动的 ElasticSearch 进程）：
+
+# Step1. 修改 /etc/security/limits.conf，添加：
+admin soft nofile 65536
+admin hard nofile 65536
+# Step2. 确认是否生效
+su - admin
+ulimit -n
+# Step3. 通过 rest 确认是否生效
+GET /_nodes/stats/process?filter_path=**.max_file_descriptors
+保证足够的虚存
+单进程最多可以占用的内存区域，默认为 65536。Elasticsearch 默认会使用 mmapfs 去存储 indices，默认的 65536 过少，会造成 OOM 异常。
+
+设置方法：
+
+# Step1. root 用户修改临时参数
+sudo sysctl -w vm.max_map_count=262144
+# Step2. 修改 /etc/sysctl.conf，在文末添加：
+vm.max_map_count = 262144
+# Step3. 确认是否生效
+sudo sysctl vm.max_map_count
+保证足够的线程
+Elasticsearch 通过将请求分成几个阶段，并交给不同的线程池执行（Elasticsearch 中有各种不同的线程池执行器）。 因此，Elasticsearch 需要创建大量线程的能力。进程可创建线程的最大数量确保 Elasticsearch 进程有权在正常使用情况下创建足够的线程。 这可以通过 /etc/security/limits.conf 使用 nproc 设置来完成。
+
+设置方法（假设是 admin 用户启动的 Elasticsearch 进程）：
+
+# Step1. 修改 /etc/security/limits.d/90-nproc.conf，添加：
+admin soft nproc 2048
+暂时不建议使用G1GC
+已知 JDK 8 附带的 HotSpot JVM 的早期版本在启用 G1GC 收集器时会导致索引损坏。受影响的版本是早于 JDK 8u40 附带的HotSpot 的版本，出于稳定性的考虑暂时不建议使用。
+
+内存优化
+ElasticSearch 自身对内存管理进行了大量优化，但对于持续增长的业务仍需进行一定程度的内存优化（而不是纯粹的添加节点和扩展物理内存），以防止 OOM 发生。ElasticSearch 使用的 JVM 堆中主要包括以下几类内存使用：
+
+Segment Memory；
+Filter Cache；
+Field Data Cache；
+Bulk Queue；
+Indexing Buffer；
+Cluster State Buffer；
+超大搜索聚合结果集的 fetch；
+详细资料可以参阅我写的这篇博文。
+
+减少 Segment Memory
+删除无用的历史索引
+删除办法，使用 rest API：
+
+# 删除指定某个索引
+DELETE /${INDEX_NAME}
+# 删除符合 pattern 的某些索引
+DELETE /${INDEX_PATTERN}
+关闭无需实时查询的历史索引，文件仍然存在于磁盘，只是释放掉内存，需要的时候可以重新打开
+关闭办法，使用 rest API：
+
+# 关闭指定某个索引
+POST /${INDEX_NAME}/_close
+# 关闭符合 pattern 的某些索引
+POST /${INDEX_PATTERN}/_close
+定期对不再更新的索引做 force merge（会占用大量 IO，建议业务低峰期触发）
+force merge 办法，使用 rest API：
+
+# Step1. 在合并前需要对合并速度进行合理限制，默认是 20mb，SSD可以适当放宽到 80mb：
+PUT /_cluster/settings -d '
+{
+    "persistent" : {
+        "indices.store.throttle.max_bytes_per_sec" : "20mb"
+    }
+}'
+
+# Step2. 强制合并 API，示例表示的是最终合并为一个 segment file：
+# 对某个索引做合并
+POST /${INDEX_NAME}/_forcemerge?max_num_segments=1
+# 对某些索引做合并
+POST /${INDEX_PATTERN}/_forcemerge?max_num_segments=1
+Filter Cache
+默认的 10% heap 设置工作得够好，如果实际使用中 heap 没什么压力的情况下，才考虑加大这个设置。
+
+Field Data Cache
+对需要排序的字段不进行 analyzed，尽量使用 doc values（5.X版本天然支持，不需要特别设置）。对于不参与搜索的字段 ( fields )，将其 index 方法设置为 no，如果对分词没有需求，对参与搜索的字段，其 index 方法设置为 not_analyzed。
+
+Bulk Queue
+一般来说官方默认的 thread pool 设置已经能很好的工作了，建议不要随意去调优相关的设置，很多时候都是适得其反的效果。
+
+Indexing Buffer
+这个参数的默认值是10% heap size。根据经验，这个默认值也能够很好的工作，应对很大的索引吞吐量。 但有些用户认为这个 buffer 越大吞吐量越高，因此见过有用户将其设置为 40% 的。到了极端的情况，写入速度很高的时候，40%都被占用，导致OOM。
+
+Cluster State Buffer
+在超大规模集群的情况下，可以考虑分集群并通过 tribe node 连接做到对用户透明，这样可以保证每个集群里的 state 信息不会膨胀得过大。在单集群情况下，缩减 cluster state buffer 的方法就是减少 shard 数量，shard 数量的确定有以下几条规则：
+
+避免有非常大的分片，因为大的分片可能会对集群从故障中恢复的能力产生负面影响。 对于多大的分片没有固定的限制，但是分片大小为 50GB 通常被界定为适用于各种用例的限制；
+尽可能使用基于时间的索引来管理数据。根据保留期（retention period，可以理解成有效期）将数据分组。基于时间的索引还可以轻松地随时间改变主分片和副本分片的数量（以为要生成的下一个索引进行更改）。这简化了适应不断变化的数据量和需求；（周期性的通过删除或者关闭历史索引以减少分片）
+小分片会导致小分段(segment)，从而增加开销。目的是保持平均分片大小在几GB和几十GB之间。对于具有基于时间的数据的用例，通常看到大小在 20GB 和 40GB 之间的分片；
+由于每个分片的开销取决于分段数和大小，通过强制操作迫使较小的段合并成较大的段可以减少开销并提高查询性能。一旦没有更多的数据被写入索引，这应该是理想的。请注意，这是一个消耗资源的（昂贵的）操作，较为理想的处理时段应该在非高峰时段执行；（对应使用 force meger 以减少 segment 数量的优化，目的是降低 segment memory 占用）
+可以在集群节点上保存的分片数量与可用的堆内存大小成正比，但这在 Elasticsearch 中没有的固定限制。 一个很好的经验法则是：确保每个节点的分片数量保持在低于每 1GB 堆内存对应集群的分片在 20-25 之间。 因此，具有 32GB 堆内存的节点最多可以有 600-750 个分片；
+对于单索引的主分片数，有这么 2 个公式：节点数 <= 主分片数 *（副本数 + 1） 以及 (同一索引 shard 数量 * (1 + 副本数)) < 3 * 数据节点数，比如有 3 个节点全是数据节点，1 个副本，那么主分片数大于等于 1.5，同时同一索引总分片数需要小于 4.5，因为副本数为 1，所以单节点主分片最适为 2，索引总分片数最适为 6，这样每个节点的总分片为 4；
+单分片小于 20GB 的情况下，采用单分片较为合适，请求不存在网络抖动的顾虑；
+小结：分片不超 20GB，且单节点总分片不超 600。比如互联网区域，每天新建索引(lw-greenbay-online) 1 个分片 1 个副本，3 个月前的历史索引都关闭，3 节点总共需要扛 90 * 2 = 180 个分片，每个分片大约 6 GB，可谓比较健康的状态。
+
+超大搜索聚合结果集的 fetch
+避免用户 fetch 超大搜索聚合结果集，确实需要大量拉取数据可以采用 scan & scroll API 来实现。在 ElasticSearch 上搜索数据时，默认只会返回10条文档，当我们想获取更多结果，或者只要结果中的一个区间的数据时，可以通过 size 和 from 来指定。
+
+GET /_search?size=3&from=20
+如上的查询语句，会返回排序后的结果中第 20 到第 22 条数据。ElasticSearch 在收到这样的一个请求之后，每一个分片都会返回一个 top22 的搜索结果，然后将这些结果汇总排序，再选出 top22 ，最后取第 20 到第 22 条数据作为结果返回。
+这样会带来一个问题，当我们搜索的时候，如果想取出第 10001 条数据，那么就相当于每个一分片都要对数据进行排序，取出前 10001 条文档，然后 ElasticSearch 再将这些结果汇总再次排序，之后取出第 10001 条数据。这样对于 ElasticSearch 来说就会产生相当大的资源和性能开销。如果我们不要求 ElasticSearch 对结果进行排序，那么就会消耗很少的资源，所以针对此种情况，ElasticSearch 提供了scan & scroll的搜索方式。
+
+GET /old_index/_search?search_type=scan&scroll=1m 
+{
+    "query": { "match_all": {}},
+    "size":  1000
+}
+我们可以首先通过如上的请求发起一个搜索，但是这个请求不会返回任何文档，它会返回一个 _scroll_id ，接下来我们再通过这个 id 来从 ElasticSearch 中读取数据：
+
+GET /_search/scroll?scroll=1m 
+c2Nhbjs1OzExODpRNV9aY1VyUVM4U0NMd2pjWlJ3YWlBOzExOTpRNV9aY1VyUVM4U0 NMd2pjWlJ3YWlBOzExNjpRNV9aY1VyUVM4U0NMd2pjWlJ3YWlBOzExNzpRNV9aY1VyUVM4U0NMd2pjWlJ3YWlBOzEyMDpRNV9aY1VyUVM4U0NMd2pjWlJ3YWlBOzE7dG90YWxfaGl0czoxOw==
+此时除了会返回搜索结果以外，还会再次返回一个 _scroll_id，当我们下次继续取数据时，需要用最新的 id。
+
+存储优化
+关闭不需要的功能
+默认情况下 ElasticSearch 并将会将 indexs 和 doc values 添加到大多数字段中，以便可以搜索和聚合它们。 例如，如果有一个名为 foo 的数字字段，需要运行 histograms 但不需要 filter，则可以安全地禁用映射中此字段的索引：
+
+PUT ${INDEX_NAME}
+{
+  "mappings": {
+    "type": {
+      "properties": {
+        "foo": {
+          "type": "integer",
+          "index": false
+        }
+      }
+    }
+  }
+}
+text 字段在索引中存储规范化因子以便能够对文档进行评分。 如果只需要在 text 字段上使用 matching 功能，但不关心生成的 score，则可以命令 ElasticSearch 配置为不将规范写入索引：
+
+PUT ${INDEX_NAME}
+{
+  "mappings": {
+    "type": {
+      "properties": {
+        "foo": {
+          "type": "text",
+          "norms": false
+        }
+      }
+    }
+  }
+}
+text 字段也默认存储索引中的频率和位置。 频率用于计算分数，位置用于运行短语查询（phrase queries）。 如果不需要运行短语查询，可以告诉 ElasticSearch 不要索引位置：
+
+PUT ${INDEX_NAME}
+{
+  "mappings": {
+    "type": {
+      "properties": {
+        "foo": {
+          "type": "text",
+          "index_options": "freqs"
+        }
+      }
+    }
+  }
+}
+此外，如果不关心计分，则可以配置 ElasticSearch 以仅索引每个 term 的匹配文档。 这样做仍然可以在此字段上进行搜索(search)，但是短语查询会引发错误，评分将假定 term 在每个文档中只出现一次。
+
+PUT ${INDEX_NAME}
+{
+  "mappings": {
+    "type": {
+      "properties": {
+        "foo": {
+          "type": "text",
+          "norms": false,
+          "index_options": "freqs"
+        }
+      }
+    }
+  }
+}
+强制清除已标记删除的数据
+Elasticsearch 是建立在 Apache Lucene 基础上的实时分布式搜索引擎，Lucene 为了提高搜索的实时性，采用不可再修改（immutable）方式将文档存储在一个个 segment 中。也就是说，一个 segment 在写入到存储系统之后，将不可以再修改。那么 Lucene 是如何从一个 segment 中删除一个被索引的文档呢？简单的讲，当用户发出命令删除一个被索引的文档#ABC 时，该文档并不会被马上从相应的存储它的 segment 中删除掉，而是通过一个特殊的文件来标记该文档已被删除。当用户再次搜索到 #ABC 时，Elasticsearch 在 segment 中仍能找到 #ABC，但由于 #ABC 文档已经被标记为删除，所以Lucene 会从发回给用户的搜索结果中剔除 #ABC，所以给用户感觉的是 #ABC 已经被删除了。
+
+Elasticseach 会有后台线程根据 Lucene 的合并规则定期进行 segment merging 合并操作，一般不需要用户担心或者采取任何行动。被删除的文档在 segment 合并时，才会被真正删除掉。在此之前，它仍然会占用着 JVM heap 和操作系统的文件 cache 等资源。在某些情况下，我们需要强制 Elasticsearch 进行 segment merging，已释放其占用的大量系统资源。
+
+POST /${INDEX_NAME}/_forcemerge?max_num_segments=1&only_expunge_deletes=true&wait_for_completion=true
+POST /${INDEX_PATTERN}/_forcemerge?max_num_segments=1&only_expunge_deletes=true&wait_for_completion=true
+Force Merge 命令可强制进行 segment 合并，并删除所有标记为删除的文档。Segment merging 要消耗 CPU，以及大量的 I/O 资源，所以一定要在 ElasticSearch 集群处于维护窗口期间，并且有足够的 I/O 空间的（如：SSD）的条件下进行；否则很可能造成集群崩溃和数据丢失。
+
+减少副本数
+最直接的存储优化手段是调整副本数，默认 ElasticSearch 是有 1 个副本的，假设对可用性要求不高，允许磁盘损坏情况下可能的数据缺失，可以把副本数调整为 0，具体操作如下：
+
+PUT  /_template/${TEMPLATE_NAME}
+{
+
+  "template":"${TEMPLATE_PATTERN}",
+  "settings" : {
+    "number_of_replicas" : 0
+  },
+  "version"  : 1
+}
+其中 ${TEMPLATE_NAME} 表示模板名称，可以是不存在的，系统会新建。${TEMPLATE_PATTERN} 是用于匹配索引的表达式，比如 lw-greenbay-online-*。
+
+与此相关的一个系统参数为：index.merge.scheduler.max_thread_count，默认值为 Math.max(1, Math.min(4, Runtime.getRuntime().availableProcessors() / 2))，这个值在 SSD 上工作没问题，但是 SATA 盘上还是使用 1 个线程为好，因为太多也来不及完成。
+
+# SATA 请设置 merge 线程为 1
+PUT  /_template/${TEMPLATE_NAME}
+{
+
+  "template":"${TEMPLATE_PATTERN}",
+  "settings" : {
+    "index.merge.scheduler.max_thread_count": 1
+  },
+  "version"  : 1
+}
+请勿使用默认的动态字符串映射
+默认的动态字符串映射会将字符串字段索引为文本(text)和关键字(keyword)。 如果只需要其中的一个，这样做无疑是浪费的。 通常情况下，一个 id 字段只需要被索引为一个 keyword，而一个 body 字段只需要被索引为一个 text 字段。
+
+可以通过在字符串字段上配置显式映射或设置将字符串字段映射为文本(text)或关键字(keyword)的动态模板来禁用此功能。
+
+例如下面的模板，可以用来将 strings 字段映射为关键字：
+
+PUT ${INDEX_NAME}
+{
+  "mappings": {
+    "type": {
+      "dynamic_templates": [
+        {
+          "strings": {
+            "match_mapping_type": "string",
+            "mapping": {
+              "type": "keyword"
+            }
+          }
+        }
+      ]
+    }
+  }
+}
+禁用 _all 字段
+_all 字段是由所有字段拼接成的超级字段，如果在查询中已知需要查询的字段，就可以考虑禁用它。
+
+PUT /_template/${TEMPLATE_NAME}
+{
+  "template": "${TEMPLATE_PATTERN}",
+  "settings" : {...},
+  "mappings": {
+    "type_1": {
+      "_all": {
+         "enabled": false
+       },
+      "properties": {...}
+   }
+  },
+  "version"  : 1
+}
+使用 best_compression
+_source 字段和 stored fields 会占用大量存储，可以考虑使用 best_compression 进行压缩。默认的压缩方式为 LZ4，但需要更高压缩比的话，可以通过 inex.codec 进行设置，修改为 DEFLATE，在 force merge 后生效：
+
+# Step1. 修改压缩算法为 best_compression
+PUT  /_template/${TEMPLATE_NAME}
+{
+
+  "template":"${TEMPLATE_PATTERN}",
+  "settings" : {
+    "index.codec" : "best_compression"
+  },
+  "version"  : 1
+}
+# Step2. force merge
+POST /${INDEX_NAME}/_forcemerge?max_num_segments=1&wait_for_completion=true
+POST /${INDEX_PATTERN}/_forcemerge?max_num_segments=1&wait_for_completion=true
+使用最优数据格式
+我们为数字数据选择的类型可能会对磁盘使用量产生重大影响。 首先，应使用整数类型（byte，short，integer或long）来存储整数，浮点数应该存储在 scaled_float 中，或者存储在适合用例的最小类型中：使用 float 而不是 double，使用 half_float 而不是 float。
+
+PUT /_template/${TEMPLATE_NAME}
+{
+  "template": "${TEMPLATE_PATTERN}",
+  "settings" : {...},
+  "mappings": {
+    "type_1": {
+      "${FIELD_NAME}": {
+         "type": "integer"
+       },
+      "properties": {...}
+   }
+  },
+  "version"  : 1
+}
+搜索速度优化
+避免Join和Parent-Child
+Join会使查询慢数倍、 Parent-Child会使查询慢数百倍，请在进行 query 语句编写的时候尽量避免。
+
+映射
+某些数据本身是数字，但并不意味着它应该总是被映射为一个数字字段。 通常存储着标识符的字段（如ISBN）或来自另一个数据库的数字型记录，可能映射为 keyword 而不是 integer 或者 long 会更好些。
+
+避免使用 Scripts
+之前 Groovy 脚本曝出了很大的漏洞，总的来说是需要避免使用的。如果必须要使用，尽量用 5.X 以上版本自带的 painless 和 expressions 引擎。
+
+根据四舍五入的日期进行查询
+根据 timestamp 字段进行的查询通常不可缓存，因为匹配的范围始终在变化。 但就用户体验而言，以四舍五入对日期进行转换通常是可接受的，这样可以有效利用系统缓存。
+
+举例说明，有以下查询：
+
+PUT index/type/1
+{
+  "my_date": "2016-05-11T16:30:55.328Z"
+}
+
+GET index/_search
+{
+  "query": {
+    "constant_score": {
+      "filter": {
+        "range": {
+          "my_date": {
+            "gte": "now-1h",
+            "lte": "now"
+          }
+        }
+      }
+    }
+  }
+}
+可以对时间范围进行替换：
+
+GET index/_search
+{
+  "query": {
+    "constant_score": {
+      "filter": {
+        "range": {
+          "my_date": {
+            "gte": "now-1h/m",
+            "lte": "now/m"
+          }
+        }
+      }
+    }
+  }
+}
+在这种情况下，我们四舍五入到分钟，所以如果当前时间是 16:31:29 ，范围查询将匹配 my_date 字段的值在 15:31:00 和16:31:59 之间的所有内容。 如果多个用户在同一分钟内运行包含这个范围的查询，查询缓存可以帮助加快速度。 用于四舍五入的时间间隔越长，查询缓存可以提供的帮助就越多，但要注意过于积极的舍入也可能会伤害用户体验。
+
+为了能够利用查询缓存，建议将范围分割成大的可缓存部分和更小的不可缓存的部分，如下所示：
+
+GET index/_search
+{
+  "query": {
+    "constant_score": {
+      "filter": {
+        "bool": {
+          "should": [
+            {
+              "range": {
+                "my_date": {
+                  "gte": "now-1h",
+                  "lte": "now-1h/m"
+                }
+              }
+            },
+            {
+              "range": {
+                "my_date": {
+                  "gt": "now-1h/m",
+                  "lt": "now/m"
+                }
+              }
+            },
+            {
+              "range": {
+                "my_date": {
+                  "gte": "now/m",
+                  "lte": "now"
+                }
+              }
+            }
+          ]
+        }
+      }
+    }
+  }
+}
+然而，这种做法可能会使查询在某些情况下运行速度较慢，因为由 bool 查询引入的开销可能会因更好地利用查询缓存而失败。
+
+对只读 indices 进行 force merge
+建议将只读索引被合并到一个单独的分段中。 基于时间的索引通常就是这种情况：只有当前时间索引会写入数据，而旧索引是只读索引。
+
+预热 global ordinals
+全局序号(global ordinals)是用于在关键字(keyword)字段上运行 terms aggregations 的数据结构。 由于 ElasticSearch 不知道聚合使用哪些字段、哪些字段不使用，所以它们在内存中被加载得很慢。 我们可以通过下面的 API 来告诉 ElasticSearch 通过配置映射来在 refresh 的时候加载全局序号：
+
+PUT index
+{
+  "mappings": {
+    "type": {
+      "properties": {
+        "foo": {
+          "type": "keyword",
+          "eager_global_ordinals": true
+        }
+      }
+    }
+  }
+}
+写入性能优化
+之前描述了 ElasticSearch 在内存管理方面的优化，接下来梳理下如何对写入性能进行优化，写入性能的优化也和 HBase 类似，无非就是增加吞吐，而增加吞吐的方法就是增大刷写间隔、合理设置线程数量、开启异步刷写（允许数据丢失的情况下）。
+
+增大刷写间隔
+通过修改主配置文件 elasticsearch.yml 或者 Rest API 都可以对 index.refresh_interval进行修改，增大该属性可以提升写入吞吐。
+
+PUT  /_template/{TEMPLATE_NAME}
+{
+  "template":"{INDEX_PATTERN}",
+  "settings" : {
+    "index.refresh_interval" : "30s"
+  }
+}
+PUT {INDEX_PAATERN}/_settings
+{
+    "index.refresh_interval" : "30s"
+}
+合理设置线程数量
+调整 elasticsearch.yml ，对 bulk/flush 线程池进行调优，根据本机实际配置：
+
+threadpool.bulk.type:fixed
+threadpool.bulk.size:8 #(CPU核数)
+threadpool.flush.type:fixed
+threadpool.flush.size:8 #(CPU核数)
+开启异步刷写
+如果允许数据丢失，可以对特定 index 开启异步刷写：
+
+PUT  /_template/{TEMPLATE_NAME}
+{
+  "template":"{INDEX_PATTERN}",
+  "settings" : {
+    "index.translog.durability": "async"
+  }
+}
+
+PUT  {INDEX_PAATERN}/_settings
+{
+  "index.translog.durability": "async"
+}
+审计优化
+开启慢查询日志
+不论是数据库还是搜索引擎，对于问题的排查，开启慢查询日志是十分必要的，ElasticSearch 开启慢查询的方式有多种，但是最常用的是调用模板 API 进行全局设置：
+
+PUT  /_template/{TEMPLATE_NAME}
+{
+
+  "template":"{INDEX_PATTERN}",
+  "settings" : {
+    "index.indexing.slowlog.level": "INFO",
+    "index.indexing.slowlog.threshold.index.warn": "10s",
+    "index.indexing.slowlog.threshold.index.info": "5s",
+    "index.indexing.slowlog.threshold.index.debug": "2s",
+    "index.indexing.slowlog.threshold.index.trace": "500ms",
+    "index.indexing.slowlog.source": "1000",
+    "index.search.slowlog.level": "INFO",
+    "index.search.slowlog.threshold.query.warn": "10s",
+    "index.search.slowlog.threshold.query.info": "5s",
+    "index.search.slowlog.threshold.query.debug": "2s",
+    "index.search.slowlog.threshold.query.trace": "500ms",
+    "index.search.slowlog.threshold.fetch.warn": "1s",
+    "index.search.slowlog.threshold.fetch.info": "800ms",
+    "index.search.slowlog.threshold.fetch.debug": "500ms",
+    "index.search.slowlog.threshold.fetch.trace": "200ms"
+  },
+  "version"  : 1
+}
+对于已经存在的 index 使用 settings API：
+
+PUT {INDEX_PAATERN}/_settings
+{
+    "index.indexing.slowlog.level": "INFO",
+    "index.indexing.slowlog.threshold.index.warn": "10s",
+    "index.indexing.slowlog.threshold.index.info": "5s",
+    "index.indexing.slowlog.threshold.index.debug": "2s",
+    "index.indexing.slowlog.threshold.index.trace": "500ms",
+    "index.indexing.slowlog.source": "1000",
+    "index.search.slowlog.level": "INFO",
+    "index.search.slowlog.threshold.query.warn": "10s",
+    "index.search.slowlog.threshold.query.info": "5s",
+    "index.search.slowlog.threshold.query.debug": "2s",
+    "index.search.slowlog.threshold.query.trace": "500ms",
+    "index.search.slowlog.threshold.fetch.warn": "1s",
+    "index.search.slowlog.threshold.fetch.info": "800ms",
+    "index.search.slowlog.threshold.fetch.debug": "500ms",
+    "index.search.slowlog.threshold.fetch.trace": "200ms"
+}
+这样，在日志目录下的慢查询日志就会有输出记录必要的信息了。

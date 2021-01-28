@@ -1,0 +1,55 @@
+input {
+    tcp {
+          port => 514
+                type => syslog
+                  }
+    udp {
+          port => 514
+                type => syslog
+                  }
+}
+
+filter {
+   if [type] == "syslog" {
+         grok {
+                 match => ["message", "%{CISCO_TAGGED_SYSLOG} %{GREEDYDATA:cisco_message}"]
+              }
+   if [ciscotag] == "ASA-4-106023" {
+       grok {
+             match => [
+                       "cisco_message", "%{CISCOFW106023}"
+                           ]
+                             }
+   }
+
+
+   if [ciscotag] == "ASA-6-*" {
+         grok {
+                 match => { "cisco_message" => "%{WORD:sysloghost} %{CISCO_ACTION:action} %{GREEDYDATA:tunnel_type} %{IP:src_ip} %{IP:dst_ip} %{DATA:user}" }
+              }
+         geoip {
+                      source => "src_ip"
+                      target => "geoip"
+                      database => "/opt/logstash-6.5.4/vendor/bundle/jruby/2.3.0/gems/logstash-filter-geoip-5.0.3-java/vendor/GeoLite2-City.mmdb"
+                      add_field => [ "[geoip][coordinates]", "%{[geoip][longitude]}" ]
+                      add_field => [ "[geoip][coordinates]", "%{[geoip][latitude]}"  ]
+                      }
+
+                mutate {
+                         convert => [ "[geoip][coordinates]", "float"]
+                       }    
+
+mutate {
+    remove_field => [ "message" ]
+}
+}
+}
+}
+output {
+        elasticsearch {
+                        hosts => ["10.100.1.201:9200", "10.100.1.202:9200", "10.100.1.203:9200"]
+                        index => ["logstash-cisco-%{+YYYY.MM.dd}"] 
+                        user => "elastic"
+                        password => "kR9LfiwUqq7ikTxYpTsx"
+                      }
+}

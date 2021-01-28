@@ -1,0 +1,34 @@
+    log_format  access  
+                    # client
+                    '$http_x_real_ip $http_x_forwarded_for $remote_addr $remote_port - $remote_user '
+                    '[$time_local] "$http_user_agent" "$http_referer" "$ssl_protocol" "$ssl_cipher" '
+
+                    # request
+                    '"$request_id" "$request_method" "$scheme" "$server_name" "$request" '
+                    '$https $limit_rate "$request_filename" "$request_uri" "$http_cookie" '
+                    '$request_length "$request_completion" $request_time '
+
+                    # response
+                    '"$server_protocol" $status [$time_local] $content_length "$content_type" $body_bytes_sent '
+
+                    # server
+                    '"$host" "$document_root" "$document_uri" '
+
+                    # proxy pass
+                    '$proxy_add_x_forwarded_for $proxy_host $proxy_port "$realpath_root" "$uri" "$query_string" '
+
+                    # upstream
+                    '$upstream_addr $upstream_cache_status $upstream_connect_time $upstream_header_time '
+                    '$upstream_response_length $upstream_response_time $upstream_status ';
+
+
+                    - - 192.168.4.95 63114 - - [07/May/2019:15:52:29 +0800] "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/72.0.3626.121 Safari/537.36" "https://apm.trunk.cnepay.cc/" "TLSv1.2" "ECDHE-RSA-AES256-GCM-SHA384" "d5e7d3313e05e03482b2e67dd2f6baae" "GET" "https" "apm.trunk.cnepay.cc" "GET /getScatterData.pinpoint?to=1557200582000&from=1557027782000&limit=5000&filter=&application=mposp2way-52&xGroupUnit=568421&yGroupUnit=115 HTTP/1.1" on 0 "/usr/local/nginx/html/getScatterData.pinpoint" "/getScatterData.pinpoint?to=1557200582000&from=1557027782000&limit=5000&filter=&application=mposp2way-52&xGroupUnit=568421&yGroupUnit=115" "_ga=GA1.2.2068043078.1553354121; _gid=GA1.2.776371459.1557026083; _gat=1" 599 "OK" 0.278 "HTTP/1.1" 200 [07/May/2019:15:52:29 +0800] - "-" 82635 "apm.trunk.cnepay.cc" "/usr/local/nginx/html" "/getScatterData.pinpoint" 192.168.4.95 192.168.1.25:8079 8079 "/usr/local/nginx/html" "/getScatterData.pinpoint" "to=1557200582000&from=1557027782000&limit=5000&filter=&application=mposp2way-52&xGroupUnit=568421&yGroupUnit=115" 192.168.1.25:8079 - 0.001 0.272 82535 0.278 200
+
+                    (?:%{IPV4:x_real_ip}|-) (?:%{IPV4:x_forward_for}|-) %{IPV4:remote_ip} %{NUMBER:remote_port} (?:%{USER:ident}|-) %{NOTSPACE:auth} \[%{DATA:timestamp}\] "%{DATA:http_user_agent}" (?:"(?:%{URI:http_referrer}|-)"|%{QS:http_referrer}) "%{NOTSPACE:ssl_protocol}" "%{NOTSPACE:ssl_chiper}" "%{BASE16NUM:request_id}" "%{WORD:http_method}" "%{WORD:http_schema}" "%{HOSTNAME:hostname}" "(?:%{WORD:request_verb} %{NOTSPACE:request} (?:HTTP/%{NUMBER:http_version})?)" %{WORD:is_https_on} %{NUMBER:limit_rate} "%{NOTSPACE:request_filename}" "%{NOTSPACE:request_uri}" "%{DATA:cookie}" %{NUMBER:request_lenth} "%{WORD:request_completion}" %{NUMBER:request_time} "%{DATA:server_protocol}" %{NUMBER:reponse_status} \[%{DATA:reps_bgn_time}\] (?:%{NUMBER:content_length}|-) "%{DATA:content_type}" %{NUMBER:body_bytes_sent} "%{HOSTNAME:hostname}" "%{NOTSPACE:document_root}" "%{NOTSPACE:document_uri}" (?:%{IPV4:proxy_add_x_forward_for}|-) %{URIHOST:proxy_host} %{NUMBER:proxy_port} "%{NOTSPACE:realpath_root}" "%{NOTSPACE:uri}" "%{NOTSPACE:query_string}" %{URIHOST:upstream_addr} (?:%{DATA:upstream_cache_status}|-) %{NUMBER:upstream_connect_time} %{NUMBER:upstream_header_time} %{NUMBER:upstream_response_length} %{NUMBER:upstream_response_time} %{NUMBER:upstream_status}
+
+
+
+
+
+
+

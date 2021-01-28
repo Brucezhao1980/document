@@ -1,0 +1,99 @@
+#!/bin/bash
+
+#Author£º
+
+#            perofu
+
+#Email£º
+
+#            perofu.com@gmail.com
+
+ 
+
+log_file=/tmp/elasticsearch_optimize_index.log
+
+day=`date "+%Y-%m-%d"`
+
+day_1=`date -d "1  days ago"  "+%Y-%m-%d"`
+
+day_7=`date -d "7  days ago"  "+%Y-%m-%d"`
+
+ip="192.168.58.158"
+
+index_name="bb-nginx-tp
+
+aa-nginx-tp"
+
+ 
+
+#number_of_replicas setting 0
+
+curl -XPUT -uelastic:changeme "http://${ip}:9200/*-${day}/_settings" -d '
+
+{
+
+    "number_of_replicas": 0
+
+}'
+
+# clear cache
+
+curl -s -uelastic:changeme -XPOST 'http://${ip}:9200/_cache/clear'
+
+echo "${day}" >> ${log_file}
+
+ 
+
+curl -s -uelastic:changeme 'http://${ip}:9200/_cat/nodes?v&h=segments.count,segments.memory,segments.index_writer_memory,segments.version_map_memory,segments.fixed_bitset_memory' &>> ${log_file}
+
+#optimize segment
+
+ 
+
+echo "${index_name}" | while read line
+
+do
+
+        echo "" >> ${log_file}
+
+        curl -s -uelastic:changeme 'http://${ip}:9200/_cat/indices?v' | grep "${line}-${day_1}" &>> ${log_file}
+
+    curl -s -uelastic:changeme 'http://${ip}:9200/_cat/segments?v'|grep "${line}-${day_1}" | awk 'BEGIN{summ=0}{summ=summ+$10}END{print summ}' &>> ${log_file}
+
+ 
+
+        curl -s -XPOST -uelastic:changeme "http://${ip}:9200/${line}-${day_1}/_forcemerge?max_num_segments=1" &>> ${log_file}
+
+        sleep 10
+
+        curl -s -uelastic:changeme 'http://${ip}:9200/_cat/indices?v' | grep "${line}-${day_1}" &>> ${log_file}
+
+        curl -s -uelastic:changeme 'http://${ip}:9200/_cat/segments?v'|grep "${line}-${day_1}" | awk 'BEGIN{summ=0}{summ=summ+$10}END{print summ}' &>> ${log_file}
+
+        echo "" >> ${log_file}
+
+done
+
+ 
+
+curl -s -uelastic:changeme 'http://${ip}:9200/_cat/nodes?v&h=segments.count,segments.memory,segments.index_writer_memory,segments.version_map_memory,segments.fixed_bitset_memory' &>> ${log_file}
+
+ 
+
+#close index 7 day ago
+
+echo "${index_name}" | while read line
+
+do
+
+        echo "" >> ${log_file}
+
+        curl -s -XPOST -uelastic:changeme "http://${ip}:9200/${line}-${day_7}/_close" &>> ${log_file}
+
+        sleep 2
+
+done
+
+ 
+
+curl -s -uelastic:changeme 'http://${ip}:9200/_cat/nodes?v&h=segments.count,segments.memory,segments.index_writer_memory,segments.version_map_memory,segments.fixed_bitset_memory' &>> ${log_file}

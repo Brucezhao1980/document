@@ -1,0 +1,112 @@
+ES调优（经典）  https://www.jianshu.com/p/e59a3cce5840
+
+
+获取集群的节点列表：  curl 'localhost:9200/_cat/nodes?v'
+
+列出所有索引：　　    curl 'localhost:9200/_cat/indices?v'
+
+查看kafka的topic命令   bin/kafka-topics.sh --list --zookeeper localhost:2181
+
+查看elasticsearch的索引命令  curl 'localhost:9200/_cat/indices?v' 
+
+查看索引大小        curl -XGET 'http://localhost:9200/_mapping?pretty=1'
+
+查看集群线程池      curl 'http://localhost:9200/_cat/thread_pool?v'
+
+查看进程信息 打开文件数，是否锁定内存等     curl 'http://127.0.0.1:9200/_nodes/process?pretty'
+
+
+
+
+删除elasticsearch的索引命令 curl -XDELETE 'http://127.0.0.1:9200/logstash-*'
+
+查看集群状态    curl 'localhost:9200/_cat/health?v'
+
+查看分片状态    curl -X GET 'http://localhost:9200/_cluster/health?pretty'
+
+删除未分配副本分片     curl -XPUT "http://localhost:9200/_settings" -d' {  "number_of_replicas" : 0 } '
+
+查看所有未分配索引     curl -s "http://127.0.0.1:9200/_cat/shards" | grep UNASSIGNED
+
+查看磁盘利用率      curl -s 'localhost:9200/_cat/allocation?v'
+
+
+知道哪个索引的哪个分片就开始手动修复，通过reroute的allocate分配
+
+curl -XPOST '{ESIP}:9200/_cluster/reroute' -d '{
+    "commands" : [ {
+          "allocate" : {
+              "index" : "eslog1",
+              "shard" : 4,
+              "node" : "es1",
+              "allow_primary" : true
+          }
+        }
+    ]
+}'
+
+
+
+ES索引合并  curl -XPOST http://127.0.0.1:9200/nginx-2018.01.*/_forcemerge?max_num_segments=1  不要对正在写入的热索引进行合并归档
+
+
+查看一个索引所有segment的memory占用情况    curl -s -uelastic:changeme 'http://127.0.0.1:9200/_cat/segments?v'
+
+
+查看一个node上所有segment占用的memory总和
+
+curl  'http://127.0.0.1:9200/_cat/nodes?v&h=segments.count,segments.memory,segments.index_writer_memory,segments.version_map_memory,segments.fixed_bitset_memory'
+
+
+
+关闭索引    curl -s -XPOST -uelastic:changeme 'http://192.168.58.158:9200/api-nginx-tp-2017-08-28/_close'
+
+curl -s -XPOST -uelastic:changeme 'http://192.168.58.158:9200/*-2017-08-28/_close'
+
+##对一个索引指定每个节点上的最大分片数量。例如我们希望ops索引在每个节点上只有一个分片，我们可以运行如下命令：
+
+# curl -XPUT "http://127.0.0.1:9200/ops/_settings" -d '{
+  "index.routing.allocation.total_shards_per_node" : 10
+  }'
+
+安全设置
+
+action.disable_close_all_indices: true     #禁止关闭索引
+action.disable_delete_all_indices: true    #禁止删除索引
+action.disable_shutdown: true              #禁止关闭节点
+
+针对skywalking生成的索引做优化
+
+PUT /_template/es-*
+{ "index_patterns": "es-*", "order": 1, "settings": { "index": { "refresh_interval": "30s", "translog": { "flush_threshold_size": "1GB", "sync_interval": "60s", "durability": "async" } } } }
+
+
+查看设置
+
+GET .kibana/_settings
+
+
+
+PUT .kibana/_settings
+{
+  "index.blocks.read_only_allow_delete": null
+}
+
+
+PUT .kibana/_settings
+{
+  "index": {
+    "max_result_window": "100000"
+  }
+}
+
+解除只读模式
+
+ PUT _settings
+ {
+   "index": {
+     "blocks": {
+       "read_only_allow_delete": "false"
+     }
+   }
+ }

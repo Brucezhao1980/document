@@ -1,0 +1,468 @@
+#=========================== Filebeat prospectors =============================
+#filebeat.prospectors:
+
+filebeat.inputs:
+- type: log 
+  paths:
+    - /home/v3/server/3.Product_DSF/dsf_v3/front/allchannel_df_rt/log/allchannel_df.log
+  fields:
+    project: advanceservice
+    appname: allchannel_df_rt
+    env: allchannel_df_rt
+    node: 192.168.250.83
+  multiline:
+    pattern: '^[0-2][0-9]:[0-5][0-9]:[0-5][0-9]'
+    negate: true
+    match: after
+
+- type: log
+  paths:
+    - /home/v3/server/3.Product_DSF/dsf_v3/front/china_unionpay_settle_rt/log/unionpay_settle_rt.log
+  fields:
+    project: advanceservice
+    appname: china_unionpay_settle_rt
+    env: china_unionpay_settle_rt
+    node: 192.168.250.83
+  multiline:
+    pattern: '^[[:space:]]+|^<log'
+    negate: false
+    match: before
+
+- type: log
+  paths:
+    - /home/v3/server/3.Product_DSF/dsf_v3/cts/log/cts.log
+  fields:
+    project: advanceservice
+    appname: cts
+    env: cts
+    node: 192.168.250.83
+  multiline:
+    pattern: '^[[:space:]]+|^<log'
+    negate: false
+    match: before
+
+- type: log
+  paths:
+    - /home/v3/server/3.Product_DSF/dsf_v3/front/dlcup_df_rt/log/dlcup_df_rt.log
+  fields:
+    project: advanceservice
+    appname: dlcup_df_rt
+    env: dlcup_df_rt
+    node: 192.168.250.83
+  multiline:
+    pattern: '^[[:space:]]+|^<log'
+    negate: false
+    match: before
+
+- type: log
+  paths:
+    - /home/v3/server/3.Product_DSF/dsf_v3/front/dsf-channel-data/log/dsf-front-file.log
+  fields:
+    project: advanceservice
+    appname: dsf-channel-data
+    env: dsf-channel-data
+    node: 192.168.250.83
+  multiline:
+    pattern: '^[[:space:]]+|^<log'
+    negate: false
+    match: before
+
+- type: log
+  paths:
+    - /home/v3/server/3.Product_DSF/dsf_v3/dsf-boss3-1521/logs/dsfboss.log
+  fields:
+    project: advanceservice
+    appname: dsf_boss
+    env: dsf_boss
+    node: 192.168.250.83
+  multiline:
+    pattern: '^[[:space:]]+|^<log'
+    negate: false
+    match: before
+
+- type: log
+  paths:
+    - /home/v3/server/3.Product_DSF/dsf_v3/mapi_df/log/mapi_df.log
+  fields:
+    project: advanceservice
+    appname: mapi_df
+    env: mapi_df
+    node: 192.168.250.83
+  multiline:
+    pattern: '^[[:space:]]+|^<log'
+    negate: false
+    match: before
+
+- type: log
+  paths:
+    - /home/v3/server/3.Product_DSF/dsf_v3/dsf-mss3/logs/catalina.*.log
+  fields:
+    project: advanceservice
+    appname: mss
+    env: mss
+    node: 192.168.250.83
+  multiline:
+    pattern: '^[[:space:]]+|^<log'
+    negate: false
+    match: before
+
+- type: log
+  paths:
+    - /home/v3/server/3.Product_DSF/dsf_v3/front/tjcup_bhb_allchanel_df/log/tjcup_bhb_allchannel_df.log
+  fields:
+    project: advanceservice
+    appname: tjcup_bhb_allchannel_df
+    env: tjcup_bhb_allchannel_df
+    node: 192.168.250.83
+  multiline:
+    pattern: '^[[:space:]]+|^<log'
+    negate: false
+    match: before
+
+- type: log
+  paths:
+    - /home/v3/server/3.Product_DSF/dsf_v3/front/tjcup_bhb_ac_rt/log/tjcup_bbh_ac_rt.log
+  fields:
+    project: advanceservice
+    appname: tjcup_bhb_allchannel_rt
+    env: tjcup_bhb_allchannel_rt
+    node: 192.168.250.83
+  multiline:
+    pattern: '^[[:space:]]+|^<log'
+    negate: false
+    match: before
+
+
+- type: log
+  paths:
+    - /home/v3/server/3.Product_DSF/dsf_v3/front/tjcup_pf_allchannel_df/log/tjcup_pf_allchannel_df.log
+  fields:
+    project: advanceservice
+    appname: tjcup_pf_allchannel_df
+    env: tjcup_pf_allchannel_df
+    node: 192.168.250.83
+  multiline:
+    pattern: '^[[:space:]]+|^<log'
+    negate: false
+    match: before
+
+- type: log
+  paths:
+    - /home/v3/server/3.Product_DSF/dsf_v3/front/tjcup_pf_allchannel_rt/log/tjcup_pf_ac_rt.log
+  fields:
+    project: advanceservice
+    appname: tjcup_pf_allchannel_rt
+    env: tjcup_pf_allchannel_rt
+    node: 192.168.250.83
+  multiline:
+    pattern: '^[[:space:]]+|^<log'
+    negate: false
+    match: before
+
+- type: log
+  paths:
+    - /home/v3/server/3.Product_DSF/dsf_v3/front/tjcup_xy_allchannel_rt/log/tjcup_xy_ac_rt.log
+  fields:
+    project: advanceservice
+    appname: tjcup_xy_allchannel_rt
+    env: tjcup_xy_allchannel_rt
+    node: 192.168.250.83
+  multiline:
+    pattern: '^[[:space:]]+|^<log'
+    negate: false
+    match: before
+
+- type: log
+  paths:
+    - /home/v3/server/3.Product_DSF/dsf_v3/Capital-gateway/logs/log_capitalGateway_info.log
+  fields:
+    project: advanceservice
+    appname: CapitalGateway
+    env: CapitalGateway
+    node: 192.168.250.83
+  multiline:
+    pattern: '^[[:space:]]+|^<log'
+    negate: false
+    match: before
+
+- type: log
+  paths:
+    - /home/v3/server/3.Product_DSF/dsf_v3/CapitalWeb/logs/log_capitalWeb_info.log
+  fields:
+    project: advanceservice
+    appname: CapitalWeb
+    env: CapitalWeb
+    node: 192.168.250.83
+  multiline:
+    pattern: '^[[:space:]]+|^<log'
+    negate: false
+    match: before
+
+- type: log
+  paths:
+    - /home/v3/server/3.Product_DSF/dsf_v3/front/tqgfRealName/log/tqgfAuth.log
+  fields:
+    project: authservice
+    appname: front_TQGF_auth
+    env: front_TQGF_auth
+    node: 192.168.250.83
+  multiline:
+    pattern: '^[[:space:]]+|^<log'
+    negate: false
+    match: before
+
+- type: log
+  paths:
+    - /home/v3/server/3.Product_DSF/dsf_v3/front/bypay_authentic/log/acq.log
+  fields:
+    project: authservice
+    appname: bypay_authentic
+    env: bypay_authentic
+    node: 192.168.250.83
+  multiline:
+    pattern: '^[[:space:]]+|^<log'
+    negate: false
+    match: before
+
+- type: log
+  paths:
+    - /home/v3/server/3.Product_DSF/dsf_v3/front/zsRealName/log/zsAuth.log
+  fields:
+    project: authservice
+    appname: front_ZS_auth
+    env: front_ZS_auth
+    node: 192.168.250.83
+  multiline:
+    pattern: '^[[:space:]]+|^<log'
+    negate: false
+    match: before
+
+- type: log
+  paths:
+    - /home/v3/server/smrz_v1/front/smrz_Channel_Xstd/log/xstd.log
+  fields:
+    project: authservice
+    appname: smrz-channel-hxtd
+    env: smrz-channel-hxtd
+    node: 192.168.250.83
+  multiline:
+    pattern: '^[[:space:]]+|^<log'
+    negate: false
+    match: before
+
+- type: log
+  paths:
+    - /home/v3/server/smrz_v1/front/smrz_Channel_Xstd/log/xstd.log
+  fields:
+    project: authservice
+    appname: smrz-channel-xstd
+    env: smrz-channel-xstd
+    node: 192.168.250.83
+  multiline:
+    pattern: '^[[:space:]]+|^<log'
+    negate: false
+    match: before
+
+- type: log
+  paths:
+    - /home/v3/server/smrz_v1/front/smrz_Channel_zstd/log/zstd.log
+  fields:
+    project: authservice
+    appname: smrz-channel-zstd
+    env: smrz-channel-zstd
+    node: 192.168.250.83
+  multiline:
+    pattern: '^[[:space:]]+|^<log'
+    negate: false
+    match: before
+
+
+- type: log
+  paths:
+    - /home/v3/server/3.Product_DSF/dsf_v3/front/qdcup_df_rt/log/qdcup_df_rt.log
+  fields:
+    project: advanceservice
+    appname: qdcup_df_rt
+    env: qdcup_df_rt
+    node: 192.168.250.83
+  multiline:
+    pattern: '^[[:space:]]+|^<log'
+    negate: false
+    match: before
+
+- type: log
+  paths:
+    - /home/v3/server/3.Product_DSF/dsf_v3/front/b2bic_pingan_front/log/trade.log
+  fields:
+    project: advanceservice
+    appname: b2bic_pingan_front
+    env: b2bic_pingan_front
+    node: 192.168.250.83
+  multiline:
+    pattern: '^[[:space:]]+|^<log'
+    negate: false
+    match: before
+
+- type: log
+  paths:
+    - /home/v3/server/3.Product_DSF/dsf_v3/front/china_unionpay_settle_batch_df/log/unionpay_settle_batch_df.log
+  fields:
+    project: advanceservice
+    appname: china_unionpay_settle_batch_df
+    env: china_unionpay_settle_batch_df
+    node: 192.168.250.83
+  multiline:
+    pattern: '^[[:space:]]+|^<log'
+    negate: false
+    match: before
+
+- type: log
+  paths:
+    - /home/v3/server/3.Product_DSF/dsf_v3/front/tjcup_pf_allchannel2_rt/log/tjcup_pf_ac2_rt.log
+  fields:
+    project: advanceservice
+    appname: tjcup_pf_allchannel_rt
+    env: tjcup_pf_allchannel_rt
+    node: 192.168.250.83
+  multiline:
+    pattern: '^[[:space:]]+|^<log'
+    negate: false
+    match: before
+
+- type: log
+  paths:
+    - /home/v3/server/3.Product_DSF/dsf_v3/front/allchannel_ic_rt/log/allchannel_ic_rt.log 
+  fields:
+    project: advanceservice
+    appname: allchannel_ic_rt
+    env: allchannel_ic_rt
+    node: 192.168.250.83
+  multiline:
+    pattern: '^[[:space:]]+|^<log'
+    negate: false
+    match: before
+
+- type: log
+  paths:
+    - /home/v3/server/3.Product_DSF/dsf_v3/front/ahcup_bh_df_rt/log/ahcup_bh_df_rt.log
+  fields:
+    project: advanceservice
+    appname: ahcup_bh_df_rt
+    env: ahcup_bh_df_rt
+    node: 192.168.250.83
+  multiline:
+    pattern: '^[[:space:]]+|^<log'
+    negate: false
+    match: before
+
+- type: log
+  paths:
+    - /home/v3/server/3.Product_DSF/dsf_v3/front/zsRealName/log/zsAuth.log 
+  fields:
+    project: authservice
+    appname: zsRealName
+    env: zsRealName
+    node: 192.168.250.83
+  multiline:
+    pattern: '^[[:space:]]+|^<log'
+    negate: false
+    match: before
+
+- type: log
+  paths:
+    - /home/v3/server/3.Product_DSF/dsf_v3/encMapi/log/encMapi.log
+  fields:
+    project: authservice
+    appname: encMapi
+    env: encMapi
+    node: 192.168.250.83
+  multiline:
+    pattern: '^[[:space:]]+|^<log'
+    negate: false
+    match: before
+
+- type: log
+  paths:
+    - /home/v3/server/3.Product_DSF/dsf_v3/notify/log/notify.log
+  fields:
+    project: partnerservice
+    appname: zh-notify-centre
+    env: zh-notify-centre
+    node: 192.168.250.83
+  multiline:
+    pattern: '^[[:space:]]+|^<log'
+    negate: false
+    match: before
+
+- type: log
+  paths:
+    - /home/v3/server/3.Product_DSF/dsf_v3/holidayService_10001/log/hoidayService.log
+  fields:
+    project: utils
+    appname: holidayCommonService
+    env: holidayCommonService
+    node: 192.168.250.83
+  multiline:
+    pattern: '^[[:space:]]+|^<log'
+    negate: false
+    match: before
+
+
+- type: log
+  paths:
+    - /var/log/messages
+  fields:
+    project: system
+    appname: messages
+    env: messages
+    node: 192.168.250.83
+  multiline:
+    pattern: '^[[:space:]]+|^<log'
+    negate: false
+    match: before
+
+- type: log
+  paths:
+    - /var/log/secure
+  fields:
+    project: system
+    appname: secure
+    env: secure
+    node: 192.168.250.83
+  multiline:
+    pattern: '^[[:space:]]+|^<log'
+    negate: false
+    match: before
+
+
+
+
+filebeat.config.modules:
+  # Glob pattern for configuration loading
+    path: ${path.config}/modules.d/*.yml
+
+############################
+#  output:
+#    logstash:
+#      hosts: ["10.100.1.201:5044"]
+#
+# #----------------------------- Logstash output --------------------------------
+# # #output.logstash:
+# # # The Logstash hosts
+# # # hosts: ["localhost:5044"]
+
+output.logstash:
+   hosts: ["10.1.30.9:25055"]
+#   loadbalance: true
+   #
+#   # #################################################################################
+#output.kafka:
+#  enabled: true
+#  hosts: ["10.100.1.201:9092","10.100.1.202:9092","10.100.1.203:9092"]
+#  topic: '%{[fields.logtopic]}'
+#  partition.hash:
+#    reachable_only: true
+#  compression: gzip
+#  max_message_bytes: 1000000
+#  required_acks: 1
+#logging.to_files: true

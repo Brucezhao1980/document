@@ -1,0 +1,380 @@
+参考：http://www.tuicool.com/articles/R77fieA
+
+使用filebeat在服务器端收集日志（定义字段，做多行合并处理）-传给logstash，通过filebeat定义的字段输出给elasticsearch，elasticsearch通过logstash的定义自动建立索引。最后通过kibana展示。使用es的search-gruad插件做ssl用户认证。
+
+大致的架构是 filebeat-logstash-elasticsearch-kibana
+
+除了filebeat，其他都在一台虚拟机上，没做集群。大概的环境流程如下:
+
+
+ 
+
+二、部署安装
+（一）、部署logstash+elasticsearch+kibana（持久、检索、展示层）
+
+1、部署jdk，配置环境变量。
+
+2、系统调优
+
+[webapp@localhost ~]$ vim /etc/sysctl.conf
+
+fs.file-max=65536
+
+vm.max_map_count = 262144
+
+
+sysctl -p
+
+[webapp@localhost ~]$ vim /etc/security/limits.conf
+
+* soft nofile 65535
+
+* hard nofile 131072
+
+* soft nproc 2048
+
+* hard nproc 4096
+
+
+4.1、配置logstash的配置文件
+
+[root@elk config]# cat logstash_product.conf 
+input {
+  beats {
+    port => 5044                
+  }
+
+}
+filter{
+    grok {
+        match => ["message", "%{TIMESTAMP_ISO8601:logdate}"]
+    }
+    date {
+        match => ["logdate", "yyyy-MM-dd HH:mm:ss,SSS"]
+        target => "@timestamp"
+    }                                                         #这段是把默认的时间戳变更为收集的系统日志时间。
+    mutate {
+        remove_field => ["logdate"]
+    }
+}
+output {
+  elasticsearch {
+    hosts => ["localhost:9200"]                               #不要用ip，否则会报错。 
+    ssl => true
+    ssl_certificate_verification => true
+    truststore => "/home/elk/elasticsearch-5.4.0/config/truststore.jks"
+    truststore_password => changeit                                       #上面4行是使用search-gruad插件必须配置的。
+    manage_template => false
+    index => "%{[fields][project]}-%{[fields][app_name]}-%{+YYYY.MM.dd}"   #es生成索引对应的名字。
+    document_type => "%{[@metadata][type]}"
+    user => "admin"
+    password => "admin"
+  }
+#stdout{
+#   codec =>rubydebug{
+#   metadata => true
+#}
+#}
+}
+         
+
+
+
+启动命令
+
+nohup /home/elk/logstash-5.4.1/bin/logstash -f /home/elk/logstash-5.4.1/config/logstash_product.conf &
+
+4.3、配置elasticsearch的配置文件
+
+[elasticsearch@elk config]$ cat elasticsearch.yml
+node.name: elk1
+path.data: /home/elk/elk_data
+path.logs: /home/elk/elk_data
+network.host: 0.0.0.0
+http.port: 9200
+bootstrap.system_call_filter: false 
+http.cors.enabled: true
+http.cors.allow-origin: "*"
+
+
+######## Start Search Guard Demo Configuration ########
+searchguard.ssl.transport.keystore_filepath: keystore.jks
+searchguard.ssl.transport.truststore_filepath: truststore.jks
+searchguard.ssl.transport.enforce_hostname_verification: false
+searchguard.ssl.http.enabled: true
+searchguard.ssl.http.keystore_filepath: keystore.jks
+searchguard.ssl.http.truststore_filepath: truststore.jks
+searchguard.authcz.admin_dn:
+  - CN=kirk,OU=client,O=client,L=test, C=de
+
+cluster.name: ELK-01
+######## End Search Guard Demo Configuration ########
+
+#号中的这段是安装search-gruad插件时自动添加的，需要注释掉最后的network.host。
+
+启动elasticsearch不能用root用户，各种限制打开
+
+下面是es的一些优化。
+
+找到这行 ES_JAVA_OPTS="$(parse_jvm_options "$ES_JVM_OPTIONS") $ES_JAVA_OPTS"
+修改成   ES_JAVA_OPTS="-Xms8g -Xmx8g"
+
+最好是机器内存大小的一半，但是不要超过32个G。
+
+> vim /etc/security/limits.conf
+...
+elasticsearch hard nofile 65536  # 针对 max file descriptors
+elasticsearch soft nproc 2048    # 针对 max number of threads
+ 
+> vim /etc/sysctl.conf
+...
+vm.max_map_count=262144          # 针对 max virtual memory areas
+ 
+> vim /etc/elasticsearch/elasticsearch.yml
+ 
+...
+bootstrap.system_call_filter: false   # 针对 system call filters failed to install
+
+
+启动 进入bin下 sh elasticsearch -d
+
+
+#####################################################################################################
+
+安装search-gruad插件做ssl用户认证。   https://github.com/floragunncom/search-guard
+
+进入es目录 执行/bin/elasticsearch-plugin install -b com.floragunn:search-guard-5:5.4.0-12 （要和es的版本对应）
+
+cd into <ES directory>/plugins/search-guard-<version>/tools
+
+./install_demo_configuration.sh
+
+启动elasticsearch之后再执行下面的脚本
+
+./sgadmin_demo.sh            (重启es要启动es之后再执行这个脚本，做认证。)
+
+若是报错如 Search Guard not initialized或者 None of the configured nodes are availabl 之类的可以加 
+
+ -i searchguard_demo 指定index name   。就是和elasticsearch.yml的配置里的cluster.name匹配
+
+ 
+ ##################下面是另一种报错执行的命令，-cn对应的集群名，或者node.name
+ sh sgadmin.sh -cn searchguard_demo -h 172.168.1.202 -ks /home/elk/elasticsearch-5.4.0/config/kirk.jks -ts /home/elk/elasticsearch-5.4.0/config/truststore.jks -cd /home/elk/elasticsearch-5.4.0/plugins/search-guard-5/sgconfig -icl -nhnv
+ 
+es装了这个插件，kibana也要装，logstash要改配置
+
+cd /home/elk/elasticsearch-5.4.0/plugins/search-guard-5/sgconfig   用户名密码认证在这路径下
+
+1、sg_config.yml：主配置文件不需要做改动。
+
+2、sg_internal_users.yml：本地用户文件，定义用户密码以及对应的权限。
+
+3、sg_roles.yml：权限配置文件
+
+4、sg_roles_mapping.yml:定义用户的映射关系
+
+5、sg_action_groups.yml：定义权限
+
+
+4.5、配置Kibana的配置文件
+
+[webapp@localhost ~]$ cd /home/elk/kibana-5.4.0-linux-x86_64/config
+
+[webapp@localhost config]$ vim kibana.yml
+
+server.port: 5601
+
+server.host: "172.168.1.202"
+
+
+
+
+elasticsearch.url: "https://172.168.1.202:9200"
+
+
+
+
+elasticsearch.username: "kibanaserver"
+elasticsearch.password: "kibanaserver"
+
+
+
+
+elasticsearch.ssl.verificationMode: none
+
+
+启动kibana 
+ 
+node/bin/node --no-warnings src/cli &
+  
+部署kibana的search-gruad插件  https://github.com/floragunncom/search-guard-docs/blob/master/kibana.md 
+  
+先确定 elasticsearch.yml的配置里
+
+searchguard.ssl.http.enabled: true
+
+安装 bin/kibana-plugin install https://github.com/floragunncom/search-guard-kibana-plugin/releases/download/v5.4.0/searchguard-kibana-5.4.0-2.zip
+
+
+
+2、配置filebeat配置文件
+
+解压缩之后，修改配置文件，启动。
+
+
+
+#=========================== Filebeat prospectors =============================
+
+filebeat.prospectors:
+
+
+
+- input_type: log
+  paths: ["/home/appuser/server/horizon-stapt/logs/Sapphire.log"]
+  fields:
+    tenant: xinjiang
+    project: horizon
+    app_name: stapt
+    apptype: java
+    env: product
+  document_type: stapt
+  multiline:
+          pattern: '^[[:space:]]+|^Caused by:'
+          negate: false
+          match: after
+
+
+#----------------------------- Logstash output --------------------------------
+#output.logstash:
+  # The Logstash hosts
+ # hosts: ["localhost:5044"]
+output.logstash:
+
+  hosts: ["172.168.1.202:5044"]
+
+
+#################################################################################
+
+2个配置项，一个是收集日志定义字段多行合并，一个是输出到logstash
+
+替换之前配置的多行合并项。
+
+sed -i 's/\^\[\[:space:\]\]/^[[:space:]]+|^Caused by:/g' filebeat.ymltest 
+
+3、启动filebeat
+
+[webapp@localhost filebeat-5.2.0-linux-x86_64]$ nohup ./filebeat -c filebeat.yml > /dev/null &
+
+
+
+
+5、通过web展示，访问http://172.168.1.202:5601
+
+
+
+6、在kibana里展示nginx访问ip的top10
+
+
+配置nginx日志格式
+nginx.conf里添加
+
+ log_format  access  '$remote_addr $remote_port $remote_user $time_iso8601 $status $body_bytes_sent '
+                                   '$bytes_sent $request_length $request_time '
+                                   '"$request" "$http_referer" "$http_user_agent" "$http_x_forwarded_for"';
+								   
+在logstash里添加（整个logstash配置）
+
+input {
+  beats {
+    port => 5044
+  }
+
+}
+#filter{
+#    grok {
+#        match => ["message", "%{TIMESTAMP_ISO8601:logdate}"]
+#    }
+
+filter {
+    grok {
+    }
+
+    geoip {
+        source  => "remote_addr"
+        target  => "geoip"
+        add_tag => ["geoip"]
+    }
+    date {
+        match => ["logdate", "yyyy-MM-dd HH:mm:ss,SSS"]
+        target => "@timestamp"
+    }
+    mutate {
+        remove_field => ["logdate"]
+    }
+}
+output {
+  elasticsearch {
+    hosts => ["localhost:9200"]
+    ssl => true
+    ssl_certificate_verification => true
+    truststore => "/home/elk/elasticsearch-5.4.0/config/truststore.jks"
+    truststore_password => changeit
+    manage_template => false
+    index => "%{[fields][project]}-%{[fields][app_name]}-%{+YYYY.MM.dd}"
+    document_type => "%{[@metadata][type]}"
+    user => "admin"
+    password => "admin"
+  }
+#stdout{
+#   codec =>rubydebug{
+#   metadata => true
+#}
+#}
+}
+
+在kibana里配置访问城市ip图								   
+
+
+input {
+  beats {
+    port => 5044                
+  }
+
+}
+filter{
+    grok {
+        match => { "message" => "%{IPORHOST:remote_addr} %{NUMBER:remote_port}  %{NUMBER:body_bytes_sent} %{NUMBER:bytes_sent} %{NUMBER:request_length} %{NUMBER:request_time} \"%{WORD:request_method} %{DATA:request_url} %{DATA:http_version}\" \"%{DATA:http_referer}\"\"%{DATA:user_agent}\" \"%{DATA:http_x_forwarded_for}\"" }
+    }
+
+    geoip {
+        source  => "remote_addr"
+        target  => "geoip"
+        add_tag => [ "geoip" ]
+    } 
+    date {
+        match => ["logdate", "yyyy-MM-dd HH:mm:ss,SSS"]
+        target => "@timestamp"
+    }                                                         #这段是把默认的时间戳变更为收集的系统日志时间。
+    mutate {
+        remove_field => ["logdate"]
+    }
+}
+output {
+  elasticsearch {
+    hosts => ["localhost:9200"]                               #不要用ip，否则会报错。 
+    ssl => true
+    ssl_certificate_verification => true
+    truststore => "/home/elk/elasticsearch-5.4.0/config/truststore.jks"
+    truststore_password => changeit                                       #上面4行是使用search-gruad插件必须配置的。
+    manage_template => false
+    index => "%{[fields][project]}-%{[fields][app_name]}-%{+YYYY.MM.dd}"   #es生成索引对应的名字。
+    document_type => "%{[@metadata][type]}"
+    user => "admin"
+    password => "admin"
+  }
+#stdout{
+#   codec =>rubydebug{
+#   metadata => true
+#}
+#}
+}								   

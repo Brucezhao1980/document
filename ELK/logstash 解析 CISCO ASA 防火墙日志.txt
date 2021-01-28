@@ -1,0 +1,59 @@
+# logstash 解析 CISCO ASA 防火墙日志
+
+input {
+    file { 
+        path => "/var/log/devicelog/*.log"
+        type => "cisco-fw"
+    }
+}
+
+# logstash filter for CISCO ASA 日志解析
+filter {
+    
+    if [type] == "cisco-fw" {
+        grok {
+            match => ["message", "%{CISCOTIMESTAMP:timestamp} %{SYSLOGHOST:sysloghost} : %%{CISCOTAG:ciscotag}: %{GREEDYDATA:cisco_message}"]
+        }
+
+    # 解析 syslog 日志级别 and 日志类型
+    # 日志类型 标签
+    # 数据类型是 array
+    # 默认值是 ["kernel", "user-level", "mail", "daemon", "security/authorization", "syslogd", "line printer", "network news", "uucp", "clock", "security/authorization", "ftp", "ntp", "log audit", "log alert", "clock", "local0", "local1", "local2", "local3", "local4", "local5", "local6", "local7"]
+    # 日志类型符合 RFC3164
+
+    # 日志级别 标签
+    # 数据类型是 array
+    # 默认值是 ["emergency", "alert", "critical", "error", "warning", "notice", "informational", "debug"]
+    # 日志级别符合 RFC3164
+
+    syslog_pri { }
+    
+    # 解析日志详情
+    # 以下使用到的正则已包含在logstash中
+    grok {
+        match => [
+            "cisco_message", "%{CISCOFW106001}",
+            "cisco_message", "%{CISCOFW106006_106007_106010}",
+            "cisco_message", "%{CISCOFW106014}",
+            "cisco_message", "%{CISCOFW106015}",
+            "cisco_message", "%{CISCOFW106021}",
+            "cisco_message", "%{CISCOFW106023}",
+            "cisco_message", "%{CISCOFW106100}",
+            "cisco_message", "%{CISCOFW110002}",
+            "cisco_message", "%{CISCOFW302010}",
+            "cisco_message", "%{CISCOFW302013_302014_302015_302016}",
+            "cisco_message", "%{CISCOFW302020_302021}",
+            "cisco_message", "%{CISCOFW305011}",
+            "cisco_message", "%{CISCOFW313001_313004_313008}",
+            "cisco_message", "%{CISCOFW313005}",
+            "cisco_message", "%{CISCOFW402117}",
+            "cisco_message", "%{CISCOFW402119}",
+            "cisco_message", "%{CISCOFW419001}",
+            "cisco_message", "%{CISCOFW419002}",
+            "cisco_message", "%{CISCOFW500004}",
+            "cisco_message", "%{CISCOFW602303_602304}",
+            "cisco_message", "%{CISCOFW710001_710002_710003_710005_710006}",
+            "cisco_message", "%{CISCOFW713172}",
+            "cisco_message", "%{CISCOFW733100}"
+        ]
+}

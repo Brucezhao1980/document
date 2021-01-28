@@ -1,0 +1,53 @@
+server {
+        listen       80;
+        server_name  elk.cnepay.net;
+        access_log  logs/cnepay.net/elk.cnepay.net-443.log access;
+
+
+        location / {
+            index index.jsp index.htm index.html;
+            error_page 502 503 504 /boss-502.html;
+            error_page 403         /boss-403.html;
+            allow 111.160.229.10;
+            allow 106.37.206.154;
+            allow 106.37.206.158;
+            allow 192.168.100.20;
+            allow 60.247.95.174;
+            allow 192.168.100.20;
+            deny all;
+            auth_basic "The Kibana Monitor Center";
+            auth_basic_user_file /usr/local/nginx/html/.htpasswd;
+            proxy_redirect off;
+            proxy_connect_timeout 10m;
+            proxy_send_timeout 10m;
+            proxy_read_timeout 10m;
+            proxy_pass http://10.1.30.9:5601;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto  $scheme;
+        }
+		 location = /boss-502.html {
+            root html;
+        }
+        location = /boss-403.html {
+            root html;
+        }
+    }
+	
+	
+	添加权限认证 
+在nginx.conf下的location /模块下添加
+
+auth_basic "The Kibana Monitor Center";
+auth_basic_user_file /usr/local/nginx/html/.htpasswd;
+
+
+通过加密工具htpasswd生成账号和密码
+
+[root@leeclient html]# htpasswd -c /usr/local/nginx/html/.htpasswd admin
+New password: 
+Re-type new password: 
+Adding password for user admin
+
+

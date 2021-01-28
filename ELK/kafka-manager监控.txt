@@ -1,0 +1,59 @@
+本文将介绍一个监控kafka集群的工具，由雅虎开源的kafka-manager，github地址为https://github.com/yahoo/kafka-manager
+
+
+
+安装部署
+详细步骤可以参考官方文档，这里只列出一些必要重要的步骤
+
+下载最新的releases版本，目前最新的是1.3.3.17
+解压kafka-manager-1.3.3.17.tar.gz，进入目录kafka-manager-1.3.3.17，执行./sbt clean dist进行编译
+编译之后会在kafka-manager-1.3.3.17/target/universal下面生成安装包kafka-manager-1.3.3.17.zip
+
+将安装包解压，修改conf/application.conf配置文件中的kafka-manager.zkhosts参数
+执行bin/kafka-manager启动服务，默认的端口号为9000
+
+添加kafka集群
+
+登录http://10.1.2.16:9000添加kafka集群
+
+点击Add Cluster会出现下面的配置页面，必填的就是前三个属性
+
+
+
+
+
+
+
+
+
+
+如果需要监控每个topic的消费情况，需要勾选下面两个选项
+
+
+
+
+
+
+
+
+
+
+监控某个topic
+通过下面的页面可以看到某个topic的详细信息，例如在“Consumers consuming from this topic”中可以看到消费这个topic的所有consumers；在“Partition Information”中可以看到是否有数据偏移的情况。
+
+
+
+
+
+
+
+提示
+
+如果不配置application.home，会导致输出的日志找不到路径，默认会生成一个application.home_IS_UNDEFINED文件夹存放日志。在启动的时候加入这个参数即可，例如bin/kafka-manager -Dapplication.home='${user.dir}'
+默认的端口号为9000，可以通过bin/kafka-manager -Dhttp.port=9527命令，更改端口号
+通过bin/kafka-manager -Dpidfile.path=/var/run/km.pid命令，可以更改pid的存储路径
+停止应用默认可以执行kill $(cat kafka-manager-1.3.3.17/RUNNING_PID )
+
+
+参考链接 
+https://www.jianshu.com/p/05a125e29723
