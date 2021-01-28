@@ -1,0 +1,39 @@
+curl -XPOST -H 'Content-type: application/json' -u elastic:kR9LfiwUqq7ikTxYpTsx 'http://10.100.1.201:9200/_xpack/security/role_mapping/ldap_user_admin?pretty' -d '{
+"roles": [ "zhonghui" ],
+"enabled": true,
+"rules": {
+
+"any": [
+  {
+    "field": {
+      "username": "/zhouwc/"
+    }
+  }
+]
+}
+}'
+
+
+
+curl -XPOST -H 'Content-type: application/json' -u elastic:QcIAxyjrJP64cCSOcaL3 'http://127.0.0.1:29200/_xpack/security/role_mapping/ldap_user_admin?pretty' -d '{
+    "roles": [ "readonly" ],
+    "enabled": true,
+    "rules": {
+    "any": [
+      {
+        "field": {
+         "groups": "/CN=用户-技术中心,OU=技术中心,OU=中汇电子支付有限公司,OU=用户,DC=cnepay,DC=local/"
+        }
+    }
+    ]
+    }
+    }'
+	
+	
+##########################
+
+echo
+192.168.2.101   DC1.cnepay.local
+192.168.2.102   DC2.cnepay.local
+192.168.2.101   cnepay.local
+192.168.2.102   cnepay.local

@@ -1,0 +1,37 @@
+input {
+        beats {
+                port => "5044"
+        }
+}
+filter {
+        grok {
+                match => ["message", "%{TIMESTAMP_ISO8601:logdate}"]
+        }
+        date {
+                match => ["logdate", "yyyy-MM-dd HH:mm:ss,SSS"]
+                target => "@timestamp"
+        }
+        mutate {
+                remove_field => ["logdate"]
+        }
+
+        if [fields][project] == "nginx" {
+                grok {
+                        match => { "message" => "%{DATA:http_x_forwarded_for} (?:%{USER:ident}|-) %{USER:remote_user} \[%{HTTPDATE:timestamp}\] \"%{WORD:verb} %{URIPATHPARAM:request} HTTP\/%{NUMBER:httpversion}\" %{NUMBER:response} (?:%{NUMBER:bytes}|-)" }
+                }
+                
+        geoip {
+                source => "http_x_forwarded_for"
+                database =>  "/opt/logstash/vendor/bundle/jruby/2.5.0/gems/logstash-filter-geoip-6.0.3-java/vendor/GeoLite2-City.mmdb"
+        }
+
+}
+}
+
+
+output {
+        elasticsearch {
+                        hosts => ["10.0.0.91:9200"]
+                        index => ["%{[fields][project]}-%{+YYYY.MM.dd}"]
+                }
+}
