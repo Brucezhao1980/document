@@ -1,5 +1,6 @@
 生成mongo认证KEY
 
+```
 mkdir $HOME/.mongoReplSet/keyfile
 
 openssl rand -base64 745 > $HOME/.mongoReplSet/keyfile/mongoReplSet-keyfile
@@ -112,3 +113,4 @@ rs.initiate(
 )
 
 最后通过 rs.status() 查看状态即可。
+```
