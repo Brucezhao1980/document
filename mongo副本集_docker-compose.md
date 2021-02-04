@@ -1,18 +1,20 @@
 生成mongo认证KEY
 
-# 生成 keyfile
 mkdir $HOME/.mongoReplSet/keyfile
+
 openssl rand -base64 745 > $HOME/.mongoReplSet/keyfile/mongoReplSet-keyfile
+
 chmod 600 $HOME/.mongoReplSet/keyfile/mongoReplSet-keyfile
 
 chown 999 $HOME/.mongoReplSet/keyfile/mongoReplSet-keyfile   ## 这步要给权限。
 
 mkdir -p /opt/mongo/db1
+
 mkdir -p /opt/mongo/db2
+
 mkdir -p /opt/mongo/db3
 
 chown 999 -R /opt/mongo/
-
 
 docker-compose.yml 内容：
 
