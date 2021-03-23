@@ -1,0 +1,16 @@
+#!/bin/bash
+
+
+i=232348
+
+while [ $i -le 232352 ]
+do
+	curl -G -d "country=78&email=$i@qq.com&verificationcode=123123&password=abc123456"  https://*********/account/app/user_registered/registered >./123.txt
+    let i++ 
+    echo $i@qq.com >>./456.txt
+done
+
+for line in $(cat 456.txt)
+do
+      curl -G -d "mobileOrEmail=$line&password=abc123456" https://*********/account/app/user_action/user_login |awk -F "[\"\"]" '{print $20}' >>token.txt
+done
