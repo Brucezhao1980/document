@@ -23,8 +23,8 @@ driver.get('https://webnano.test.supers.io')
 if __name__ == '__main__':
     Post_url = "https://webnano.test.supers.io/account/app/user_action/user_login"
     Post_data = {
-        'mobileOrEmail': '231702@qq.com',
-        'password': 'abc123456'
+        'mobileOrEmail': '******',
+        'password': '****'
     }
     Text = se.post(Post_url, data=Post_data).text.replace("'", '"').replace('/ ', '/')
     print(Text)
