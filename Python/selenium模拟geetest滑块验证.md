@@ -86,8 +86,8 @@ try:
     driver.implicitly_wait(3)
     input_username = driver.find_elements_by_tag_name("input")[0]
     input_password = driver.find_elements_by_tag_name("input")[1]
-    input_username.send_keys('231712@qq.com')
-    input_password.send_keys('abc123456')
+    input_username.send_keys('*****')
+    input_password.send_keys('******')
     driver.find_elements_by_tag_name("button")[0].click()
     time.sleep(2)  # 等待验证码加载
     none_img = get_image(driver)
