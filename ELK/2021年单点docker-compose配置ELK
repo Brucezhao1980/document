@@ -56,7 +56,7 @@ input {
 }
 filter {
     grok {
-         match => ["message", "(?m)^(%{TIMESTAMP_ISO8601:logdate}|%{SYSLOGTIMESTAMP:logdate})%{SPACE}%{SPACE}?(?<loglevel>AUDIT|CRITICAL|DEBUG|INFO|TRACE|WARNING|ERROR) \[?\b%{NOTSPACE:Tid}\b\]?%{SPACE}? \[?\b%{NOTSPACE:Pid}\b\]? --- \[?\b%{NOTSPACE:thread}\b\] %{JAVACLASS:class}%{GREEDYDATA:data}"]    
+         match => ["message", "(?m)^(%{TIMESTAMP_ISO8601:logdate}|%{SYSLOGTIMESTAMP:logdate})%{SPACE}%{SPACE}?(?<loglevel>AUDIT|CRITICAL|DEBUG|INFO|TRACE|WARNING|ERROR) %{NOTSPACE:Tid} \[?\b%{NOTSPACE:Pid}\b\]? --- \[?\b%{NOTSPACE:thread}\b\] %{JAVACLASS:class}%{GREEDYDATA:data}"]    
     }		# 过滤springboot日志字段（logdate,loglevel,Tid,Pid,thread,class,data）
     
     date {
