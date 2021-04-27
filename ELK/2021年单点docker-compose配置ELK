@@ -1,0 +1,155 @@
+预发布ELK最新配置
+
+单点采用docker-compose配置，版本统一使用7.6.2
+
+**docker-compose配置**
+
+```
+version: '3'
+services:
+  elasticsearch:
+    image: elasticsearch:7.6.2
+    container_name: elk_elasticsearch
+    restart: always
+    environment:
+      - "cluster.name=elasticsearch"
+      - "discovery.type=single-node"
+      - "ES_JAVA_OPTS=-Xms4G -Xmx4G"
+    volumes:
+      - /data/elk/elasticsearch/plugins:/usr/share/elasticsearch/plugins
+      - /data/elk/elasticsearch/data:/usr/share/elasticsearch/data
+    ports:
+      - 9200:9200
+  kibana:
+    image: kibana:7.6.2
+    container_name: elk_kibana
+    restart: always
+    depends_on:
+      - elasticsearch
+    environment:
+      - ELASTICSEARCH_URL=http://10.0.0.19:9200
+    ports:
+      - 5601:5601
+  logstash:
+    image: logstash:7.6.2
+    container_name: elk_logstash
+    restart: always
+    volumes:
+      - /data/elk/logstash/logstash-springboot.conf:/usr/share/logstash/pipeline/logstash.conf
+    depends_on:
+      - elasticsearch
+    links:
+      - elasticsearch:es
+    ports:
+      - 4560:4560
+```
+
+
+
+**logstash配置**
+
+```
+input {
+    beats {
+        port => "4560"  
+    }
+}
+filter {
+    grok {
+         match => ["message", "(?m)^(%{TIMESTAMP_ISO8601:logdate}|%{SYSLOGTIMESTAMP:logdate})%{SPACE}%{SPACE}?(?<loglevel>AUDIT|CRITICAL|DEBUG|INFO|TRACE|WARNING|ERROR) \[?\b%{NOTSPACE:Tid}\b\]?%{SPACE}? \[?\b%{NOTSPACE:Pid}\b\]? --- \[?\b%{NOTSPACE:thread}\b\] %{JAVACLASS:class}%{GREEDYDATA:data}"]    
+    }		# 过滤springboot日志字段（logdate,loglevel,Tid,Pid,thread,class,data）
+    
+    date {
+            match => ["logdate", "yyyy-MM-dd HH:mm:ss,SSS"]  
+            target => "@timestamp"
+    }
+if [fields] == "server" {
+    grok {
+            match => ["message", "^(\tat)"]  
+            add_tag => ["stacktrace"]
+}
+}
+if [fields] == "gateway" {
+    grok {
+            match => ["message", "^(\tat)"]  
+            add_tag => ["stacktrace"]
+}
+}
+grok {
+    match => { "message" => "(?<timestamp>%{YEAR}-%{MONTHNUM}-%{MONTHDAY} %{TIME})  %{LOGLEVEL:level} %{NUMBER:pid} --- \[%{DATA:thread}\] .+? :\s+(?<logmessage>.*)"}
+}
+}
+output {
+    elasticsearch {
+                    hosts => ["10.0.0.19:9200"] 
+                    index => ["%{[fields][project]}-%{+YYYY.MM.dd}"]
+            }
+}
+```
+
+**filebeat配置**
+
+```
+filebeat.inputs:
+- type: log                                                                   
+  paths:
+    - "/data/logs/cfd/cfd-provider.*.*.log"
+  fields:
+    project: cfd
+    app_name: cfd
+    env: pre
+    node: 10.0.0.20
+  multiline: 
+    pattern: '^\d{4}-\d{1,2}-\d{1,2}'
+    negate: true
+    match: before
+    max_lines: 100
+
+filebeat.config.modules:
+  # Glob pattern for configuration loading
+    path: ${path.config}/modules.d/*.yml
+
+
+output.logstash:
+   hosts: ["10.0.0.19:4560"]
+   loadbalance: true
+```
+
+
+
+**索引优化**
+
+```
+PUT /_template/-
+{ "index_patterns": "*", "order": 1, "settings": { "index": { "refresh_interval": "30s", "translog": { "flush_threshold_size": "1GB", "sync_interval": "60s", "durability": "async" } } } }
+
+PUT _all/_settings
+{
+"index": {
+"number_of_replicas": 0
+}
+}
+
+PUT /_template/-
+{
+"index_patterns": ["-*"],
+"order" : 0,
+"settings": {
+"number_of_replicas" : 0
+}
+}
+```
+
+
+
+**定期删除索引脚本**
+
+```
+#!/bin/bash
+day=`date -d "3 day ago" +%Y.%m.%d`
+DATA=`date -d "30 day ago" +%Y.%m.%d`
+curl  -XDELETE -k "http://127.0.0.1:9200/*-${DATA}"
+sleep 3  # 合并分片
+curl -XPOST http://127.0.0.1:9200/*-${day}/_forcemerge?max_num_segments=1
+```
+
