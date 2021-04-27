@@ -11,3 +11,14 @@ itdbp-bigdata-web prov-tucs-preservice prov-tucs-prov-tucs-contr)
 	curl -u admin:admin -XDELETE -k "https://172.168.1.202:9200/$INDEX"
 
       done
+
+##################
+删除索引并且合并分片
+##################
+
+#!/bin/bash
+day=`date -d "3 day ago" +%Y.%m.%d`
+DATA=`date -d "30 day ago" +%Y.%m.%d`
+curl  -XDELETE -k "http://127.0.0.1:9200/*-${DATA}"
+sleep 3  # 合并分片
+curl -XPOST http://127.0.0.1:9200/*-${day}/_forcemerge?max_num_segments=1
