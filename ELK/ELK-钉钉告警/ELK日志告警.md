@@ -169,7 +169,7 @@ filter:
 
    query: "message: postProcess AND message: failed AND message: (!JWTToken)" 
 
-
+include: ["message", "@timestamp", "loglevel"]  # 只发送包含这些字段的信息
 
 filter:
 
@@ -208,7 +208,7 @@ filter:
 - query_string:
 
   query: "message: (TradeCompetitionEventListener.resolveMessage AND failed) OR message: (ConfigEventListener.resolveMessage AND failed) OR message: (onMessage AND failed)"
-
+include: ["message", "@timestamp", "loglevel"]  # 只发送包含这些字段的信息
 alert:
 
  - "elastalert_modules.dingtalk_alert.DingTalkAlerter"
@@ -241,7 +241,7 @@ filter:
 
   query: "message: (process AND failed) OR message: (postProcess AND failed) OR message: (order AND status AND illegal) OR message: (checkAndPendingToPlaceOrders AND failed) OR message: (addTxQueueAndRemoveTxMapSafely AND failed) OR message: (batchCheckAddTxQueueAndRemoveTxMap AND failed) OR message: (pendingToPlaceOrder AND failed) OR message: (checkAddAndRemoveTxMap AND failed) OR message: (closeSimuOrder AND failed) OR message: (settleOverNightOrders AND notOverNight AND failed) OR message: (settleOverNightOrders AND overNight AND failed) OR message: (checkAndSettleOrders AND failed) OR message: (cannot AND get AND product)" 
 
-
+include: ["message", "@timestamp", "loglevel"]  # 只发送包含这些字段的信息
 
 
 alert:
