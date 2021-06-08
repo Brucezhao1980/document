@@ -17,7 +17,7 @@ mkdir -p /opt/mongo/db3
 
 chown 999 -R /opt/mongo/
 
-docker-compose.yml 内容：
+docker-compose.yml 内容：#############################
 
 version: '3.1'
 services:
@@ -27,16 +27,15 @@ services:
     container_name: mongo1
     restart: always
     ports:
-
       - 27017:27017
-        volumes:
-            - /opt/mongo/db1:/data/db
-                  - /etc/localtime:/etc/localtime
-                  - /root/.mongoReplSet/keyfile:/data/keyfile
-                environment:
-                        MONGO_INITDB_ROOT_USERNAME: root
-                        MONGO_INITDB_ROOT_PASSWORD: root123
-                command: mongod --auth --keyFile /data/keyfile/mongoReplSet-keyfile --bind_ip_all --replSet rs0
+    volumes:
+      - /opt/mongo/db1:/data/db
+      - /etc/localtime:/etc/localtime
+      - /root/.mongoReplSet/keyfile:/data/keyfile
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: root123
+    command: mongod --auth --keyFile /root/.mongoReplSet/keyfile/mongoReplSet-keyfile --bind_ip_all --replSet rs0
 
   mongo2:
     image: mongo
@@ -45,14 +44,14 @@ services:
     restart: always
     ports:
       - 27018:27017
-        volumes:
-            - /opt/mongo/db2:/data/db
-                  - /etc/localtime:/etc/localtime
-                  - /root/.mongoReplSet/keyfile:/data/keyfile
-                environment:
-                        MONGO_INITDB_ROOT_USERNAME: root
-                        MONGO_INITDB_ROOT_PASSWORD: root123
-                command: mongod --auth --keyFile /data/keyfile/mongoReplSet-keyfile --bind_ip_all --replSet rs0
+    volumes:
+      - /opt/mongo/db2:/data/db
+      - /etc/localtime:/etc/localtime
+      - /root/.mongoReplSet/keyfile:/data/keyfile
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: root123
+    command: mongod --auth --keyFile /root/.mongoReplSet/keyfile/mongoReplSet-keyfile --bind_ip_all --replSet rs0
 
   mongo3:
     image: mongo
@@ -61,32 +60,30 @@ services:
     restart: always
     ports:
       - 27019:27017
-        volumes:
-            - /root/.mongoReplSet/keyfile:/data/keyfile
-                  - /opt/mongo/db3:/data/db
-                  - /etc/localtime:/etc/localtime
-                environment:
-                        MONGO_INITDB_ROOT_USERNAME: root
-                        MONGO_INITDB_ROOT_PASSWORD: root123
-                command: mongod --auth --keyFile /data/keyfile/mongoReplSet-keyfile --bind_ip_all --replSet rs0
+    volumes:
+      - /root/.mongoReplSet/keyfile:/data/keyfile
+      - /opt/mongo/db3:/data/db
+      - /etc/localtime:/etc/localtime
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: root123
+    command: mongod --auth --keyFile /root/.mongoReplSet/keyfile/mongoReplSet-keyfile --bind_ip_all --replSet rs0
 
   mongo-express:
     image: mongo-express:latest
     container_name: mongo-express
     restart: always
-
-depends_on:
-  - mongo1
-ports:
-  - 27020:8081
-environment:
-    ME_CONFIG_OPTIONS_EDITORTHEME: 3024-night
-    ME_CONFIG_MONGODB_SERVER: mongo1
-    ME_CONFIG_MONGODB_ADMINUSERNAME: root
-    ME_CONFIG_MONGODB_ADMINPASSWORD: root123
-    ME_CONFIG_BASICAUTH_USERNAME: root
-    ME_CONFIG_BASICAUTH_PASSWORD: root123
-
+    depends_on:
+      - mongo1
+    ports:
+      - 27020:8081
+    environment:
+      ME_CONFIG_OPTIONS_EDITORTHEME: 3024-night
+      ME_CONFIG_MONGODB_SERVER: mongo1
+      ME_CONFIG_MONGODB_ADMINUSERNAME: root
+      ME_CONFIG_MONGODB_ADMINPASSWORD: root123
+      ME_CONFIG_BASICAUTH_USERNAME: root
+      ME_CONFIG_BASICAUTH_PASSWORD: root123
 
 注意：
 
