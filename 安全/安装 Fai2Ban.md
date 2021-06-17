@@ -71,3 +71,9 @@ enabled： 确定服务是打开还是关闭。
 port：指明特定的服务。 如果使用默认端口，则服务名称可以放在这里。 如果使用非传统端口，则应该是端口号。
 logpath：提供服务日志的位置
 backend：指定用于获取文件修改的后端。
+
+/etc/fail2ban/action.d                # action 文件夹，内含默认文件。iptables 以及 mail 等 action 配置
+/etc/fail2ban/fail2ban.conf           # 定义了 fai2ban 日志级别、日志位置及 sock 文件位置
+/etc/fail2ban/filter.d                # filter 文件夹，内含默认文件。过滤日志关键内容设置
+/etc/fail2ban/jail.conf               # 默认主配置文件，主要设置 filter 和 action 规则
+/etc/fail2ban/jail.d                  # 为了防止默认主配置文件在版本升级时被覆盖，用户需要将配置模块化为多个文件，放入此文件夹，或者直接写入 / etc/fail2ban/jail.local
