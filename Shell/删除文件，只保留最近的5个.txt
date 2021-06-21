@@ -1,0 +1,5 @@
+ls -lt ./* | awk '{if(NR>4){print "rm "$9}}' | sh
+
+删除目录
+
+ls -lt ./ | awk '{if(NR>4){print "rm "$9}}' | sh

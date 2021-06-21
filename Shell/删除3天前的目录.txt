@@ -1,0 +1,1 @@
+find /data/dbdata/ -mtime +3 -exec rm -rf {} \;

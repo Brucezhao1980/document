@@ -17,7 +17,7 @@ arr=($str)
 s1=${arr[0]}
 s2=${arr[1]}
 
-curl -G -d "country=78&email=${s1}&verificationcode=123123&password=${s2}"  https://*********/account/app/user_registered/registered >./123.txt
+curl -G -d "country=78&email=${s1}&verificationcode=123123&password=${s2}"  https://www.moonxbt.com/account/app/user_registered/registered >./123.txt
 done
 }
 While_read_LINE
