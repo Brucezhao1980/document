@@ -1,0 +1,2 @@
+num,username,countrycode,pid,type,stockid,leverage,startbond,openprice,stoploss,direction,targetprofit,ordertype,fee,feeback,snapdeduct,appendamount,appendfee,simstatus,isOffsetFee,overnightfee,token
+1,promotion015@moonxbt.com,78,1,1,2,10,10,60000,57000,0,74850,fast,0.001,3,50,10,0.05,1,0,0.3,eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMDU1NTMxOSIsImV4cCI6MTYyMTQ5MDE5NSwiaWF0IjoxNjIwODg1Mzk1fQ.eEQqHw6AaYKCzMhk5hEZFzhwZXP1uAx4YLVI3Xnzilo
