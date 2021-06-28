@@ -1,0 +1,3 @@
+rsync -auz --progress ./  /data/application_logs/192.168.250.12  && ls -lt | awk '{if(NR>30){print "rm -f "$9}}' | sh
+
+rsync -aucz --progress ./  10.1.30.253:/data/application_logs/192.168.250.12/  && ls -lt | awk '{if(NR>30){print "rm -f "$9}}' | sh

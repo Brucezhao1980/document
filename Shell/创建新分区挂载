@@ -1,0 +1,263 @@
+fdisk -l 查看分区
+
+fdisk /dev/vdb 对该磁盘进行分区，输入m并回车
+
+输入n并回车，n是“new”新建分区的意思
+
+出现两个菜单e表示扩展分区，p表示主分区，按"p"键出现提示："Partition number (1-4): "选择主分区号
+
+直接按回车表示1柱面开始分区，提示最后一个柱面或大小。2（采用默认值一直回车会将整个2TB都分给/dev/vdb1）
+
+输入w  "write"并回车，意思是对刚才的结果进行保存
+
+使用lsblk命令查看
+
+利用mkfs -t ext4 /dev/vdb1命令创建文件格式
+
+利用mount /dev/vdb1 /data 命令把目录挂载到新建分区下面
+
+修改配置启动文件
+/etc/fstab
+
+echo "/dev/vdb1                                /data                  ext4    defaults        0 0" >>/etc/fstab
+
+centos分区大于2TB
+
+用parted分区工具分区
+
+
+fdisk -l  查看要分的区（我这里是/dev/vdb）
+
+
+parted /dev/vdb    #进入/dev/vdb进行分区
+
+mktable     #进行分区（整块）
+
+New disk label type? gpt  #选择分区格式为gpt
+
+ Warning: The existing disk label on /dev/vdb will be destroyed and all data on
+ this disk will be lost. Do you want to continue?  #这是一个警告，说是如果对这个这边进行分区，数据将会被覆盖而且数据会丢失，问你是否继续？
+
+ Yes/No? y            #输入“y”，表示确定，进行下一步
+
+ (parted) mkpart      #在命令行输出分区指令
+
+ Partition name?  []? primary  #分区类型为主分区，这是给分区起个名字，你可以自定义的，可以不用写我这里的参数，这里没有扩展分区一说，都是主分区。
+
+File system type?  [ext2]? ext2  #设置文件系统为ext2
+
+Start? 0  #设置起始分配位置
+
+End? 2G   #设置结束分配位置
+
+(parted) print  #查看
+(parted) mkpart  #继续分区
+ Partition name?  []? primary  #自己自定义一个名字
+File system type?  [ext2]? ext2 #设置文件系统为ext2
+Start? 5G  #设置卷标的起始位置
+End? 100%   #输入100%，表示将剩下的所有容量都分配给该分区.
+(parted) p  #打印分区结果
+
+
+ (parted) quit  #退出分区模式，不需要输入保存的按钮，退出来它会自动保存分区表信息。
+
+
+lsblk查看
+
+格式化
+mkfs -t ext4 /dev/vdb1
+
+##################LVM添加空间到根目录##################################################
+
+[root@localhost ~]# fdisk -l
+
+Disk /dev/sda: 53.6 GB, 53687091200 bytes
+255 heads, 63 sectors/track, 6527 cylinders
+Units = cylinders of 16065 * 512 = 8225280 bytes
+
+   Device Boot      Start         End      Blocks   Id  System
+/dev/sda1   *           1          13      104391   83  Linux
+/dev/sda2              14        3916    31350847+  8e  Linux LVM
+复制代码
+3.使用 fdisk 新建分区，为lvm扩容做准备
+
+复制代码
+[root@localhost ~]# fdisk /dev/sda
+
+The number of cylinders for this disk is set to 6527.
+There is nothing wrong with that, but this is larger than 1024,
+and could in certain setups cause problems with:
+1) software that runs at boot time (e.g., old versions of LILO)
+2) booting and partitioning software from other OSs
+   (e.g., DOS FDISK, OS/2 FDISK)
+
+Command (m for help): p
+
+Disk /dev/sda: 53.6 GB, 53687091200 bytes
+255 heads, 63 sectors/track, 6527 cylinders
+Units = cylinders of 16065 * 512 = 8225280 bytes
+
+   Device Boot      Start         End      Blocks   Id  System
+/dev/sda1   *           1          13      104391   83  Linux
+/dev/sda2              14        3916    31350847+  8e  Linux LVM
+
+Command (m for help): n
+Command action
+   e   extended
+   p   primary partition (1-4)
+						p
+Partition number (1-4): 1
+First cylinder (3917-6527, default 3917): 
+Using default value 3917
+Last cylinder or +size or +sizeM or +sizeK (3917-6527, default 6527): 
+Using default value 6527
+
+Command (m for help): p
+
+Disk /dev/sda: 53.6 GB, 53687091200 bytes
+255 heads, 63 sectors/track, 6527 cylinders
+Units = cylinders of 16065 * 512 = 8225280 bytes
+
+   Device Boot      Start         End      Blocks   Id  System
+/dev/sda1   *           1          13      104391   83  Linux
+/dev/sda2              14        3916    31350847+  8e  Linux LVM
+/dev/sda3            3917        6527    20972857+  83  Linux
+复制代码
+调整磁盘分区/dev/sda3为LVM格式，防止重装系统是不能识别（感觉不调整格式也能用）
+
+复制代码
+
+Command (m for help): t
+Partition number (1-4): 1
+Hex code (type L to list codes): 8e
+Changed system type of partition 3 to 8e (Linux LVM)
+
+Command (m for help): p
+
+Disk /dev/sda: 53.6 GB, 53687091200 bytes
+255 heads, 63 sectors/track, 6527 cylinders
+Units = cylinders of 16065 * 512 = 8225280 bytes
+
+   Device Boot      Start         End      Blocks   Id  System
+/dev/sda1   *           1          13      104391   83  Linux
+/dev/sda2              14        3916    31350847+  8e  Linux LVM
+/dev/sda3            3917        6527    20972857+  8e  Linux LVM
+
+Command (m for help): w
+The partition table has been altered!
+
+Calling ioctl() to re-read partition table.
+
+WARNING: Re-reading the partition table failed with error 16: Device or resource busy.
+The kernel still uses the old table.
+The new table will be used at the next reboot.
+Syncing disks.
+[root@localhost ~]# reboot
+
+Broadcast message from root (pts/1) (Wed Mar  9 11:00:43 2016):
+
+The system is going down for reboot NOW!
+复制代码
+如果Re-reading the partition table 失败，可能分区还未识别，重启下再看。
+
+4.建立 pv
+
+[root@localhost ~]# pvcreate /dev/vdb1
+  Physical volume "/dev/sda3" successfully created
+复制代码
+[root@localhost ~]# pvdisplay 
+  /dev/cdrom: open failed: No medium found
+  --- Physical volume ---
+  PV Name               /dev/sda2
+  VG Name               VolGroup00
+  PV Size               29.90 GB / not usable 24.06 MB
+  Allocatable           yes 
+  PE Size (KByte)       32768
+  Total PE              956
+  Free PE               2
+  Allocated PE          954
+  PV UUID               o9H0fA-136u-HmOM-Ga3O-7R0i-VRAS-F1mNxZ
+   
+  --- NEW Physical volume ---
+  PV Name               /dev/sda3
+  VG Name               
+  PV Size               20.00 GB
+  Allocatable           NO
+  PE Size (KByte)       0
+  Total PE              0
+  Free PE               0
+  Allocated PE          0
+  PV UUID               Qib59l-uCF5-5fo0-6oqH-5Url-yuSA-Y6N0E0
+复制代码
+5.扩展 vg
+
+[root@localhost ~]# vgextend cl /dev/vdb1
+  Volume group "VolGroup00" successfully extended
+复制代码
+[root@localhost ~]# vgdisplay 
+  --- Volume group ---
+  VG Name               VolGroup00
+  System ID             
+  Format                lvm2
+  Metadata Areas        2
+  Metadata Sequence No  4
+  VG Access             read/write
+  VG Status             resizable
+  MAX LV                0
+  Cur LV                2
+  Open LV               2
+  Max PV                0
+  Cur PV                2
+  Act PV                2
+  VG Size               49.88 GB
+  PE Size               32.00 MB
+  Total PE              1596
+  Alloc PE / Size       954 / 29.81 GB
+  Free  PE / Size       642 / 20.06 GB
+  VG UUID               8D7xnq-UPBK-LW2U-OCmc-Dl23-cpP1-qLLSHn
+复制代码
+6.扩展lv
+
+输入扩展单元，这里就是上面的Free PE 的大小。
+
+[root@localhost ~]# lvextend -l +642 /dev/cl/root
+  Extending logical volume LogVol00 to 47.94 GB
+  Logical volume LogVol00 successfully resized
+复制代码
+[root@localhost ~]# lvdisplay 
+  --- Logical volume ---
+  LV Name                /dev/VolGroup00/LogVol00
+  VG Name                VolGroup00
+  LV UUID                QDtSfz-1SlB-xl3P-mRZp-H3dx-erAx-mAwrt2
+  LV Write Access        read/write
+  LV Status              available
+  # open                 1
+  LV Size                47.94 GB
+  Current LE             1534
+  Segments               3
+  Allocation             inherit
+  Read ahead sectors     0
+  Block device           253:0
+   
+  --- Logical volume ---
+  LV Name                /dev/VolGroup00/LogVol01
+  VG Name                VolGroup00
+  LV UUID                6nv9PJ-ho10-LPkA-0GBg-TBZt-z1Tf-F6S2Hu
+  LV Write Access        read/write
+  LV Status              available
+  # open                 1
+  LV Size                1.94 GB
+  Current LE             62
+  Segments               1
+  Allocation             inherit
+  Read ahead sectors     0
+  Block device           253:1
+复制代码
+ 
+
+7.调整文件系统
+
+
+[root@localhost ~]# resize2fs  /dev/mapper/cl-root
+
+df -h
