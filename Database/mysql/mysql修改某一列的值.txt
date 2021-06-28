@@ -1,0 +1,8 @@
+mysql
+修改某一列的值从 //修改为 /
+
+SELECT path FROM `api_definition_copy1`;
+
+
+UPDATE `metersphere`.`api_definition_copy1` SET `path` = REPLACE(path, '\//', '\/');
+

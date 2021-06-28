@@ -1,0 +1,1 @@
+将指定时间之前的binlog清掉:  purge binary logs before '2020-05-01 13:09:51';

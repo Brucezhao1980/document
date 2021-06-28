@@ -1,0 +1,10 @@
+mysql创建倒序索引
+
+bank_card_copy1是表名  bank_card_name是列名
+CREATE INDEX bank ON bank_card_copy1 (bank_card_name DESC);
+
+直接添加也可以
+ALTER TABLE bank_card_copy1 ADD INDEX id (id DESC);
+
+ALTER TABLE bank_card_copy1  ADD INDEX  sd(idcard DESC);  
+Null值为yes ， 添加有主索引的Null值不能为yes

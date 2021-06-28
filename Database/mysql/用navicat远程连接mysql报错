@@ -1,0 +1,15 @@
+用navicat远程连接mysql报错 
+
+2013 lost connection to mysql server at 'reading initial communication packet' system error 0
+
+最后在配置里加了行配置
+bind-address = 0.0.0.0
+
+
+可以用这行命令检查某个库里面表的引擎，本身是用来检查库里的表有没有错误的。
+
+$newmysyia 代表是哪个库  
+
+mysqlcheck -c newmysyia -ucfd_admin -pQXcPBFaX42wGd2u!
+
+删除 check检查存储不支持的表
