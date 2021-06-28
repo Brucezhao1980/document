@@ -1,0 +1,75 @@
+主机与从机
+
+    主机   173.16.67.236  master
+
+    从机   173.16.67.120  slave
+	
+	从机   173.16.67.25  slave
+	
+
+关闭防火墙和selinux。
+
+sed -i 's/SELINUX=enforcing/SELINUX=disabled/g' /etc/selinux/config
+
+setenforce 0
+
+systemctl stop firewalld
+
+systemctl disable firewalld
+
+yum install –y gcc gcc-c++ make vim tcl
+
+上传、解压安装包，并进入解压后的目录，安装redis
+
+进入redis目录
+
+make  &&  make test && make install
+
+mkdir –p /root/redis
+
+cp redis.conf sentinel.conf /root/redis/
+
+cd src
+
+cp redis-cli redis-sentinel redis-server /root/redis/
+
+cd /root/redis/
+
+vim redis.conf
+
+     修改内容如下：
+
+        将bind 127.0.0.1这一行注释掉
+
+        将protected-mode yes改为protected-mode no
+
+        将daemonize no改为daemonize yes
+
+        将logfile ""改为logfile"/var/log/redis.log"
+vim sentinel.conf
+
+	将sentinel monitor mymaster 127.0.0.1 6379 2改为sentinel monitor mymaster 173.16.67.25 6379 2
+	   添加以下几行：
+	     daemonize yes
+
+        protected-mode no
+
+        logfile "/var/log/sentinel.log"
+
+
+从机上的配置
+
+添加一行slaveof 173.16.67.236 6379
+
+启动服务
+
+    #./redis-server ./redis.conf
+
+    #./redis-sentinel ./sentinel.conf
+
+    #./redis-server ./redis6379.conf
+
+    #./redis-sentinel ./sentinel26379.conf
+
+    #./redis-cli
+
