@@ -10,11 +10,11 @@
 
 - **`Monitors`：***Ceph Monitor*维护着展示集群状态的各种图表，包括监视器图、 OSD 图、归置组（ PG ）图、和 CRUSH 图。 Ceph 保存着发生在Monitors 、 OSD 和 PG上的每一次状态变更的历史信息（称为 epoch ）。
 
-- **`MDSs`：***Ceph 元数据服务器*（ MDS ）为 *Ceph 文件系统*存储元数据（也就是说，Ceph 块设备和 Ceph 对象存储不使用MDS ）。元数据服务器使得 POSIX原文链接：https://www.dqzboy.com 文件系统的用户们，可以在不对 Ceph 存储集群造成负担的前提下，执行诸如 ls、find 等基本命令。
+- **`MDSs`：***Ceph 元数据服务器*（ MDS ）为 *Ceph 文件系统*存储元数据（也就是说，Ceph 块设备和 Ceph 对象存储不使用MDS ）。元数据服务器使得 POSIX文件系统的用户们，可以在不对 Ceph 存储集群造成负担的前提下，执行诸如 ls、find 等基本命令。
 
   Ceph 把客户端数据保存为存储池内的对象。通过使用 CRUSH 算法， Ceph 可以计算出哪个归置组（PG）应该持有指定的对象(Object)，然后进一步计算出哪个 OSD 守护进程持有该归置组。 CRUSH 算法使得 Ceph 存储集群能够动态地伸缩、再均衡和修复。
 
-- 官网文档：[http://docs.ceph.org.cn/start/intro/](https://www.dqzboy.com/go.php?url=http://docs.ceph.org.cn/start/intro/)
+- 官网文档：[http://docs.ceph.org.cn/start/intro/]
 
 
 
@@ -199,7 +199,7 @@ yum makecache
 #### 2.1：安装distribute包
 
 - 先下载安装python的distribute包，不然后面部署ceph集群会报错
-- 下载地址：[https://pypi.org/project/distribute/#modal-close](https://www.dqzboy.com/go.php?url=https://pypi.org/project/distribute/#modal-close)
+- 下载地址：[https://pypi.org/project/distribute/#modal-close]
 
 ```
 [cephu@ceph-node1 ~]$ unzip distribute-0.7.3.zip
@@ -299,7 +299,7 @@ ceph version 12.2.13 (584a20eb0237c657dc0567da126be145106aa47e) luminous (stable
 ### 5、添加OSD
 
 - 分别为3台node节点添加OSD，注意磁盘名称，我这里为sdb，可通过命令lsblk或者fdisk命令查看磁盘
-- 官网文档：[http://docs.ceph.org.cn/rados/deployment/ceph-deploy-osd/](https://www.dqzboy.com/go.php?url=http://docs.ceph.org.cn/rados/deployment/ceph-deploy-osd/)
+- 官网文档：[http://docs.ceph.org.cn/rados/deployment/ceph-deploy-osd/]
 - **注意：**我这里只创建data盘，db和wal我这里没单独指定，如果需要单独指定则需要添加参数  `--block-db /dev/sdc` `--block-wal /dev/sdd`
 
 ```
@@ -434,7 +434,7 @@ pool 'rbd' created
 ```
 
 - 如果yum安装很慢的话，通过rpm包的方式进行安装
-- **获取rpm包：**[https://elrepo.org/linux/kernel/el7/x86_64/RPMS/](https://www.dqzboy.com/go.php?url=https://elrepo.org/linux/kernel/el7/x86_64/RPMS/)
+- **获取rpm包：**[https://elrepo.org/linux/kernel/el7/x86_64/RPMS/]
 - 内核选择：
   - kernel-lt（lt=long-term）长期有效
   - kernel-ml（ml=mainline）主流版本
@@ -490,7 +490,7 @@ Linux ceph-client 5.7.8-1.el7.elrepo.x86_64 #1 SMP Tue Jul 7 18:43:16 EDT 2020 x
 #### 4.1：环境检查
 
 - 先下载安装python的distribute包，不然部署ceph集群会报错；在client节点操作
-- **下载地址：**[https://pypi.org/project/distribute/#modal-close](https://www.dqzboy.com/go.php?url=https://pypi.org/project/distribute/#modal-close)
+- **下载地址：**[https://pypi.org/project/distribute/#modal-close]
 
 ```
 [root@ceph-client ~]# su - cephu
@@ -606,11 +606,9 @@ dqzboy.txt  lost+found
 
 
 
-## 一、[Ceph](https://www.dqzboy.com/tag/ceph)FS介绍
 
-------
 
-[Ceph](https://www.dqzboy.com/tag/ceph) File System (CephFS) 是与 POSIX 标准兼容的文件系统, 能够提供对 Ceph 存储集群上的文件访问. Jewel 版本 (10.2.0) 是第一个包含稳定 CephFS 的 Ceph 版本. CephFS 需要至少一个元数据服务器 (Metadata Server – MDS) daemon (ceph-mds) 运行, MDS daemon 管理着与存储在 CephFS 上的文件相关的元数据, 并且协调着对 Ceph 存储系统的访问。
+File System (CephFS) 是与 POSIX 标准兼容的文件系统, 能够提供对 Ceph 存储集群上的文件访问. Jewel 版本 (10.2.0) 是第一个包含稳定 CephFS 的 Ceph 版本. CephFS 需要至少一个元数据服务器 (Metadata Server – MDS) daemon (ceph-mds) 运行, MDS daemon 管理着与存储在 CephFS 上的文件相关的元数据, 并且协调着对 Ceph 存储系统的访问。
 
 - **注意**：你集群里必须有MDS，不然无法进行下面的操作
 
@@ -742,11 +740,4 @@ name: cephfs, metadata pool: cephfs-metadata, data pools: [cephfs-data ]
 [root@ceph-client ~]# stat -f /cephfs
 ```
 
-CephFs配好以后
-
-![image-20210628133443747](C:\Users\eqkil\AppData\Roaming\Typora\typora-user-images\image-20210628133443747.png)
-
-![image-20210628133507075](C:\Users\eqkil\Desktop\寓酷\image-20210628133507075.png)
-
-![image-20210628133600089](C:\Users\eqkil\AppData\Roaming\Typora\typora-user-images\image-20210628133600089.png)
 
