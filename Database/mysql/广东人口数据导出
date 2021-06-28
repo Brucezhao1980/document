@@ -1,0 +1,86 @@
+
+从oracle整张表提取14个地市数据并创建表。
+
+create table chaozhou as SELECT * FROM POP_PERSON WHERE LIVING_DIVISION_NAME LIKE '%潮州%'
+
+create table heyuan as SELECT * FROM POP_PERSON WHERE LIVING_DIVISION_NAME LIKE '%河源%'
+
+create table jiangmen as SELECT * FROM POP_PERSON WHERE LIVING_DIVISION_NAME LIKE '%江门市%'
+
+create table jieyang as SELECT * FROM POP_PERSON WHERE LIVING_DIVISION_NAME LIKE '%揭阳市%'
+
+create table maoming as SELECT * FROM POP_PERSON WHERE LIVING_DIVISION_NAME LIKE '%茂名市%'
+
+create table meizhou as SELECT * FROM POP_PERSON WHERE LIVING_DIVISION_NAME LIKE '%梅州市%'
+
+create table qingyuan as SELECT * FROM POP_PERSON WHERE LIVING_DIVISION_NAME LIKE '%清远市%'
+
+create table shantou as SELECT * FROM POP_PERSON WHERE LIVING_DIVISION_NAME LIKE '%汕头市%'
+
+create table shanwei as SELECT * FROM POP_PERSON WHERE LIVING_DIVISION_NAME LIKE '%汕尾市%'
+
+create table shaoguan as SELECT * FROM POP_PERSON WHERE LIVING_DIVISION_NAME LIKE '%韶关市%'
+
+create table yangjiang as SELECT * FROM POP_PERSON WHERE LIVING_DIVISION_NAME LIKE '%阳江市%'
+
+create table yunfu as SELECT * FROM POP_PERSON WHERE LIVING_DIVISION_NAME LIKE '%云浮市%'
+
+create table zhanjiang as SELECT * FROM POP_PERSON WHERE LIVING_DIVISION_NAME LIKE '%湛江市%'
+
+
+
+
+
+
+
+
+
+修改转换数据表结构，配合制卡程序进行制卡。
+ALTER TABLE JIANGMEN ADD id INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY;
+
+ALTER TABLE JIANGMEN ADD personnelType VARCHAR(2) NULL DEFAULT '1';
+
+ALTER TABLE JIANGMEN CHANGE PERSON_NAME name VARCHAR(30);
+
+ALTER TABLE JIANGMEN CHANGE GENDER sex CHAR(2);
+
+ALTER TABLE JIANGMEN CHANGE IDENTITY_TYPE idCardTypeCode CHAR(1);
+
+ALTER TABLE JIANGMEN CHANGE IDENTITY_NUMBER idCode VARCHAR(30);
+
+ALTER TABLE JIANGMEN CHANGE BIRTHDAY birthday VARCHAR(20);
+
+ALTER TABLE JIANGMEN CHANGE ETHNIC_GROUP nation CHAR(2);
+
+ALTER TABLE JIANGMEN CHANGE HOUSEHOLD_DIVISION_NAME addRess VARCHAR(80);
+
+ALTER TABLE JIANGMEN CHANGE LIVING_DIVISION_NAME currentAddRess VARCHAR(80);
+
+ALTER TABLE JIANGMEN CHANGE CONTACT_NUMBER phone VARCHAR(53);
+
+ALTER TABLE JIANGMEN CHANGE GUID guid CHAR(32);
+
+UPDATE JIANGMEN SET birthday = REPLACE( birthday, '-', '/' );
+
+UPDATE JIANGMEN SET birthday = REPLACE( birthday, ' 00:00:00', '' );
+
+
+上传文件到数据库。进入vmcode这个库，导入表
+source /home/data/HEYUAN.sql
+
+
+
+
+修改程序配置文件的里的表名并启动程序
+
+配置文件：BOOT-INF/classes/net/greatsoft/encrypt/dao/sqlmap/TemporaryDao.xml
+
+修改
+mark from HEYUAN  的HEYUAN 为将要执行的表名
+update HEYUAN	  的HEYUAN 为将要执行的表名
+	
+查询已完成制卡总数据量
+select count(*) from base_resident;
+
+查询已完成制卡单表数量
+select mark , count(1) cot from HEYUAN group by mark;
