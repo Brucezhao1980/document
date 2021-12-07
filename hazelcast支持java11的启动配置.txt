@@ -1,0 +1,14 @@
+hazelcast支持java11的启动配置
+
+$RUN_JAVA -server $JAVA_OPTS --add-modules java.se --add-exports java.base/jdk.internal.ref=ALL-UNNAMED --add-opens java.base/java.lang=ALL-UNNAMED --add-opens java.base/java.nio=ALL-UNNAMED --a
+dd-opens java.base/sun.nio.ch=ALL-UNNAMED --add-opens java.management/sun.management=ALL-UNNAMED --add-opens jdk.management/com.sun.management.internal=ALL-UNNAMED com.hazelcast.core.server.StartSer
+ver &
+
+
+3节点4cpu支持5w用户的配置
+
+OPENFIRE_OPTS="-Xmx4G -Xms4G -XX:NewRatio=1 -XX:SurvivorRatio=4 
+               -XX:+UseConcMarkSweepGC -XX:+CMSIncrementalMode -XX:+UseParNewGC
+               -XX:+CMSParallelRemarkEnabled -XX:CMSFullGCsBeforeCompaction=1 
+               -XX:CMSInitiatingOccupancyFraction=80 -XX:+UseCMSInitiatingOccupancyOnly 
+               -XX:+PrintGCDetails -XX:+PrintPromotionFailure"
