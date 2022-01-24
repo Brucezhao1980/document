@@ -3,7 +3,7 @@ import random
 import string
 
 random_str = ''.join(random.sample(string.ascii_letters + string.digits, 6))  # 随机6位字符串
-f = open('par_4.yaml', 'r', encoding='utf-8')
+f = open('par_3.yaml', 'r', encoding='utf-8')
 cfg = f.read()
 data = yaml.load(cfg, Loader=yaml.FullLoader)
 print(data)
