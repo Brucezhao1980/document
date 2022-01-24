@@ -15,7 +15,6 @@ c_dict = {}
 for i in data:
     if i != "enum":
         for value in list(data)[0]['params'][0]['enum']:
-            # print(value)
             c_dict[key] = value
             print(c_dict)
     else:
@@ -23,3 +22,15 @@ for i in data:
         print(c_dict)
         c_dict[key] = random_str
         print(c_dict)
+################ 下面这种2个条件判断也可以 #############
+# for i in data:
+#     if i != 'enum' and 'url' in data:
+#         c_dict[key] = random.randint(1, 10)
+#         print(c_dict)
+#         c_dict[key] = random_str
+#         print(c_dict)
+#     else:
+#         for value in list(data)[0]['params'][0]['enum']:
+#             c_dict[key] = value
+#             print(c_dict)
+###################################################
