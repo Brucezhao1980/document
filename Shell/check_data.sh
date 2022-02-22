@@ -1,7 +1,5 @@
 #!/bin/bash
-#set -e
-
-#result_code=`curl -I -m 10 -o /dev/null -s -w %{http_code} http://2`
+set -e
 
 cd /data/soft
 # 停所有服务
@@ -22,36 +20,32 @@ cd /data/soft/hazelcast-3.12.12/bin && sh stop.sh
 cd /data/soft/hazelcast-3.12.12-cfd/bin && sh stop.sh
 echo "shut hazelcast doen"
 
-ssh ec2-user@172.31.10.142 "sh /data/soft/stop.sh"
+ssh ec2-user@172.*.*.142 "sh /data/soft/stop.sh"
 
 sleep 5
 
-ssh ec2-user@172.31.11.57 "sh /data/soft/stop.sh"
+ssh ec2-user@172.*.*.57 "sh /data/soft/stop.sh"
 sleep 5
 echo "shut rocketmq done"
 
 
 # 执行sql语句清库
 
-mysql -ucfd_admin -p'QXcPBFaX42wGd2u!' -h 172.31.10.247 -e "source /opt/V6.0.0__init_moonxbt.sql"
+mysql -ucfd_admin -p'***********' -h 172.**.247 -e "source /opt/V6.0.0__init_moonxbt.sql"
 
 # 执行sql语句初始化
 
-mysql -uwallet_admin -p'QXcPBFaX42wGd2u!' -h 172.31.10.247 -e "source /opt/V6.0.0__init_wallet.sql"
+mysql -uwallet_admin -p'**************' -h 172.**.247 -e "source /opt/V6.0.0__init_wallet.sql"
 
 # # 导入mongo数据
-# cd /data/soft/mongodb-linux-x86_64-amazon-4.0.25/bin/
-
-# ./mongoimport --host product-mongo.cycxawnbkedx.ap-southeast-1.docdb.amazonaws.com -u community_rw -p Bpt13fHJC7AHBk6y -d community -c Leader --file /home/zhaojiang/Leader.json --type json
-
 
 # 启动MQ和hazelcast
 cd /data/soft/hazelcast-3.12.12/bin && nohup ./start.sh & >/dev/null 2>&1
 cd /data/soft/hazelcast-3.12.12-cfd/bin && nohup ./start.sh & >/dev/null 2>&1
 echo "start hazelcast doen"
 
-ssh ec2-user@172.31.10.142 "sh /data/soft/start.sh"
-ssh ec2-user@172.31.11.57 "sh /data/soft/start.sh"
+ssh ec2-user@172.**.142 "sh /data/soft/start.sh"
+ssh ec2-user@172.**.57 "sh /data/soft/start.sh"
 sleep 5
 echo "start rocketmq done"
 cd /data/soft
