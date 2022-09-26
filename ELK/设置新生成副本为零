@@ -1,0 +1,15 @@
+curl -X PUT 127.0.0.1:9200/_template/log  -H 'Content-Type: application/json' -d '{
+  "template": "*",
+  "settings": {
+    "number_of_shards": 1,
+    "number_of_replicas": "0"
+  }
+}'
+
+
+设置现有索引副本
+
+PUT _all/_settings
+{
+"number_of_replicas": 0
+}
